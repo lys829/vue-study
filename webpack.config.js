@@ -1,7 +1,7 @@
 const path = require('path')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const resolve = p => path.resolve(__dirname, './', p)
-console.log(232323)
+
 module.exports = {
     mode: 'development',
     entry: {main: resolve('main.js')},

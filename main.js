@@ -4,4 +4,6 @@ for(let attr in Vue ) {
     console.log(attr)
 }
 
-const vm = new Vue()
+const vm = new Vue({
+    a: 1
+})

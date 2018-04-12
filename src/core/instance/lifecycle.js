@@ -21,6 +21,15 @@ export function mountComponent(vm, el, hydrating) {
     }
 }
 
+/**
+ * 
+ * @param {Component} vm 
+ */
+export function initLifecycle(vm) {
+    const options = vm.$options;
+
+}
+
 
 export function lifecycleMixin(Vue) {
     Vue.prototype._update = function(vnode, hydrating) {}
