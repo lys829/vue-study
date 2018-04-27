@@ -1,4 +1,8 @@
 
+import { installRenderHelpers } from './render-helpers/index'
+import VNode, { createEmptyVNode } from '../vdom/vnode'
+import { createElement } from '../vdom/create-element'
+
 /**
  * 
  * @param {Component} vm 
@@ -11,6 +15,7 @@ export function initRender(vm) {
 
     //TODO: $slots处理
 
+
     /**
      * 在实例上绑定createElement函数
      * 这样就能获取正确的渲染上下文
@@ -19,6 +24,7 @@ export function initRender(vm) {
      */
     vm._c = (a, b, c, d) => createElement(vm, a, b, c, d, false);
 
+
     //规范化(alwaysNormalize)适用于发行版本, 在用户提供的render functions 中使用
     vm.$createElement = (a, b, c, d) => createElement(vm, a, b, c, d, true);
 
@@ -26,6 +32,26 @@ export function initRender(vm) {
 }
 
 export function renderMixin(Vue) {
+    installRenderHelpers(Vue.prototype)
+
     Vue.prototype.$nextTick = function(fn) {}
-    Vue.prototype._render = function() {}
+    Vue.prototype._render = function() {
+        const vm = this;
+        //render在web平台入口文件(web/entry-runtime-with-compiler.js)中定义
+        const {render} = vm.$options
+        let vnode;
+        try {
+            //_renderProxy的值为vm本身
+            vnode = render.call(vm._renderProxy, vm.$createElement);
+        } catch(e) {
+            console.error(e);
+        }
+
+        if(!(vnode instanceof VNode)) {
+            vnode = createEmptyVNode();
+        }
+
+        //set parent
+        return vnode;
+    }
 }

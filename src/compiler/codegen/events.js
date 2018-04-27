@@ -4,7 +4,7 @@ const fnExpRE = /^([\w$_]+|\([^)]*?\))\s*=>|^function\s*\(/
 const simplePathRE = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*|\['[^']*?']|\["[^"]*?"]|\[\d+]|\[[A-Za-z_$][\w$]*])*$/
 
 // KeyboardEvent.keyCode aliases
-const keyCodes: { [key: string]: number | Array<number> } = {
+const keyCodes = {
   esc: 27,
   tab: 9,
   enter: 13,
@@ -17,7 +17,7 @@ const keyCodes: { [key: string]: number | Array<number> } = {
 }
 
 // KeyboardEvent.key aliases
-const keyNames: { [key: string]: string | Array<string> } = {
+const keyNames = {
   // #7880: IE11 and Edge use `Esc` for Escape key name.
   esc: ['Esc', 'Escape'],
   tab: 'Tab',
@@ -36,7 +36,7 @@ const keyNames: { [key: string]: string | Array<string> } = {
 // the listener for .once
 const genGuard = condition => `if(${condition})return null;`
 
-const modifierCode: { [key: string]: string } = {
+const modifierCode = {
   stop: '$event.stopPropagation();',
   prevent: '$event.preventDefault();',
   self: genGuard(`$event.target !== $event.currentTarget`),
@@ -50,10 +50,10 @@ const modifierCode: { [key: string]: string } = {
 }
 
 export function genHandlers (
-  events: ASTElementHandlers,
-  isNative: boolean,
-  warn: Function
-): string {
+  events,
+  isNative,
+  warn
+) {
   let res = isNative ? 'nativeOn:{' : 'on:{'
   for (const name in events) {
     res += `"${name}":${genHandler(name, events[name])},`
@@ -63,7 +63,7 @@ export function genHandlers (
 
 // Generate handler code with binding params on Weex
 /* istanbul ignore next */
-function genWeexHandler (params: Array<any>, handlerCode: string) {
+function genWeexHandler (params, handlerCode) {
   let innerHandlerCode = handlerCode
   const exps = params.filter(exp => simplePathRE.test(exp) && exp !== '$event')
   const bindings = exps.map(exp => ({ '@binding': exp }))
@@ -80,9 +80,9 @@ function genWeexHandler (params: Array<any>, handlerCode: string) {
 }
 
 function genHandler (
-  name: string,
-  handler: ASTElementHandler | Array<ASTElementHandler>
-): string {
+  name,
+  handler
+) {
   if (!handler) {
     return 'function(){}'
   }
@@ -115,7 +115,7 @@ function genHandler (
           keys.push(key)
         }
       } else if (key === 'exact') {
-        const modifiers: ASTModifiers = (handler.modifiers: any)
+        const modifiers = (handler.modifiers: any)
         genModifierCode += genGuard(
           ['ctrl', 'shift', 'alt', 'meta']
             .filter(keyModifier => !modifiers[keyModifier])
@@ -146,11 +146,11 @@ function genHandler (
   }
 }
 
-function genKeyFilter (keys: Array<string>): string {
+function genKeyFilter (keys){
   return `if(!('button' in $event)&&${keys.map(genFilterCode).join('&&')})return null;`
 }
 
-function genFilterCode (key: string): string {
+function genFilterCode (key) {
   const keyVal = parseInt(key, 10)
   if (keyVal) {
     return `$event.keyCode!==${keyVal}`

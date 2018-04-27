@@ -5,9 +5,9 @@ import { query } from './util/index'
 import { compileToFunctions } from './compiler/index'
 import { shouldDecodeNewlines, shouldDecodeNewlinesForHref } from './util/compat'
 
-const mount = Vue.prototype.$mount
+const mount = Vue.prototype.$mount;
 Vue.prototype.$mount = function (el, hydrating) {
-    el = query(el);
+    el = el && query(el);
 
     //TODO:排除 body或者html作为挂载元素
 
@@ -16,23 +16,18 @@ Vue.prototype.$mount = function (el, hydrating) {
     // 将template/el转化为render函数
     if (!options.render) {
         let template = options.template;
-        if (template) {
-            //TODO: template >> render function
-        } else if (el) {
-            template = getOuterHTML(el);
+        //NOTE:此处省略到了其他template形式
+        if(template) {
+            const { render, staticRenderFns} = compileToFunctions(template, {
+                shouldDecodeNewlines,
+                shouldDecodeNewlinesForHref,
+                delimiters: options.delimiters,
+                comments: options.comments
+            }, this);
+            options.render = render;
+            options.staticRenderFns = staticRenderFns;
         }
     }
-
-    // if (template) {
-    //     const { render, staticRenderFns } = compileToFunctions(template, {
-    //         shouldDecodeNewlines,
-    //         shouldDecodeNewlinesForHref,
-    //         delimiters: options.delimiters,
-    //         comments: options.comments
-    //     }, this);
-    //     options.render = render;
-    //     options.staticRenderFns = staticRenderFns;
-    // }
     return mount.call(this, el, hydrating);
 }
 

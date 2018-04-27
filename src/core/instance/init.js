@@ -2,6 +2,7 @@ import { mergeOptions } from '../util/index'
 
 import { initLifecycle } from './lifecycle'
 import { initRender } from './render'
+import { initState } from './state'
 
 let uid = 0;
 export function initMixin(Vue) {
@@ -10,8 +11,8 @@ export function initMixin(Vue) {
         vm._uid = uid++;
 
         vm._isVue = true;
-
         vm.$options = mergeOptions(resolveConstructorOptions(vm.constructor), options || {}, vm);
+    
 
         // TODO: 环境不同,实现的代理方式不同
         // initProxy
@@ -19,14 +20,13 @@ export function initMixin(Vue) {
         vm._renderProxy = vm;
 
         vm._self = vm;
-
         initLifecycle(vm);
 
         initRender(vm);
         
+        initState(vm);
 
         //vm._name = formatComponentName(vm, false);
-    
         if(vm.$options.el) {
             vm.$mount(vm.$options.el);
         }

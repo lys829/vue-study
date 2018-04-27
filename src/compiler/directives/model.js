@@ -4,10 +4,10 @@
  * Cross-platform code generation for component v-model
  */
 export function genComponentModel (
-  el: ASTElement,
-  value: string,
-  modifiers: ?ASTModifiers
-): ?boolean {
+  el,
+  value,
+  modifiers
+) {
   const { number, trim } = modifiers || {}
 
   const baseValueExpression = '$$v'
@@ -34,9 +34,9 @@ export function genComponentModel (
  * Cross-platform codegen helper for generating v-model value assignment code.
  */
 export function genAssignmentCode (
-  value: string,
-  assignment: string
-): string {
+  value,
+  assignment
+) {
   const res = parseModel(value)
   if (res.key === null) {
     return `${value}=${assignment}`
@@ -62,12 +62,12 @@ export function genAssignmentCode (
 
 let len, str, chr, index, expressionPos, expressionEndPos
 
-type ModelParseResult = {
-  exp: string,
-  key: string | null
-}
+// type ModelParseResult = {
+//   exp: string,
+//   key: string | null
+// }
 
-export function parseModel (val: string): ModelParseResult {
+export function parseModel (val) {
   // Fix https://github.com/vuejs/vue/pull/7730
   // allow v-model="obj.val " (trailing whitespace)
   val = val.trim()
@@ -107,19 +107,19 @@ export function parseModel (val: string): ModelParseResult {
   }
 }
 
-function next (): number {
+function next () {
   return str.charCodeAt(++index)
 }
 
-function eof (): boolean {
+function eof () {
   return index >= len
 }
 
-function isStringStart (chr: number): boolean {
+function isStringStart (chr) {
   return chr === 0x22 || chr === 0x27
 }
 
-function parseBracket (chr: number): void {
+function parseBracket (chr) {
   let inBracket = 1
   expressionPos = index
   while (!eof()) {
@@ -137,7 +137,7 @@ function parseBracket (chr: number): void {
   }
 }
 
-function parseString (chr: number): void {
+function parseString (chr) {
   const stringQuote = chr
   while (!eof()) {
     chr = next()

@@ -1,7 +1,5 @@
 import config from '../config'
 
-import { test } from 'core/observer/test'
-
 import {
     extend,
     hasOwn,
@@ -132,6 +130,7 @@ export function mergeOptions(parent, child, vm) {
         child = child.options;
     }
 
+    //规范化参数
     //TODO: normalize
 
     //TODO: extend
@@ -139,12 +138,10 @@ export function mergeOptions(parent, child, vm) {
     //TODO: mixins
 
     const options = {};
-
     let key;
     for(key in parent) {
         mergeField(key);
     }
-
     for(key in child ) {
         if(!hasOwn(parent, key)) {
             mergeField(key);
@@ -152,8 +149,8 @@ export function mergeOptions(parent, child, vm) {
     }
 
     function mergeField(key) {
-        //先使用默认start
-        const strat = defaultStrat;
+        //每一个选项都有对应的合并策略
+        const strat = strats[key] || defaultStrat;
         options[key] = strat(parent[key], child[key], vm, key);
     }
 

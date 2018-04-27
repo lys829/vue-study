@@ -32,7 +32,7 @@ const modifierRE = /\.[^.]+/g
 const decodeHTMLCached = cached(he.decode)
 
 // configurable state
-export let warn: any
+export let warn
 let delimiters
 let transforms
 let preTransforms
@@ -41,13 +41,13 @@ let platformIsPreTag
 let platformMustUseProp
 let platformGetTagNamespace
 
-type Attr = { name: string; value: string };
+// type Attr = { name: string; value: string };
 
 export function createASTElement (
-  tag: string,
-  attrs: Array<Attr>,
-  parent: ASTElement | void
-): ASTElement {
+  tag,
+  attrs,
+  parent
+) {
   return {
     type: 1,
     tag,
@@ -62,9 +62,9 @@ export function createASTElement (
  * Convert HTML string to AST.
  */
 export function parse (
-  template: string,
-  options: CompilerOptions
-): ASTElement | void {
+  template,
+  options
+) {
   warn = options.warn || baseWarn
 
   platformIsPreTag = options.isPreTag || no
@@ -312,7 +312,7 @@ function processRawAttrs (el) {
   }
 }
 
-export function processElement (element: ASTElement, options: CompilerOptions) {
+export function processElement (element, options) {
   processKey(element)
 
   // determine whether this is a plain element after
@@ -346,7 +346,7 @@ function processRef (el) {
   }
 }
 
-export function processFor (el: ASTElement) {
+export function processFor (el) {
   let exp
   if ((exp = getAndRemoveAttr(el, 'v-for'))) {
     const res = parseFor(exp)
@@ -360,14 +360,14 @@ export function processFor (el: ASTElement) {
   }
 }
 
-type ForParseResult = {
-  for: string;
-  alias: string;
-  iterator1?: string;
-  iterator2?: string;
-};
+// type ForParseResult = {
+//   for: string;
+//   alias: string;
+//   iterator1?: string;
+//   iterator2?: string;
+// };
 
-export function parseFor (exp: string): ?ForParseResult {
+export function parseFor (exp) {
   const inMatch = exp.match(forAliasRE)
   if (!inMatch) return
   const res = {}
@@ -420,7 +420,7 @@ function processIfConditions (el, parent) {
   }
 }
 
-function findPrevElement (children: Array<any>): ASTElement | void {
+function findPrevElement (children) {
   let i = children.length
   while (i--) {
     if (children[i].type === 1) {
@@ -437,7 +437,7 @@ function findPrevElement (children: Array<any>): ASTElement | void {
   }
 }
 
-export function addIfCondition (el: ASTElement, condition: ASTIfCondition) {
+export function addIfCondition (el, condition) {
   if (!el.ifConditions) {
     el.ifConditions = []
   }
@@ -593,7 +593,7 @@ function processAttrs (el) {
   }
 }
 
-function checkInFor (el: ASTElement): boolean {
+function checkInFor (el) {
   let parent = el
   while (parent) {
     if (parent.for !== undefined) {
@@ -604,7 +604,7 @@ function checkInFor (el: ASTElement): boolean {
   return false
 }
 
-function parseModifiers (name: string): Object | void {
+function parseModifiers (name){
   const match = name.match(modifierRE)
   if (match) {
     const ret = {}
@@ -613,7 +613,7 @@ function parseModifiers (name: string): Object | void {
   }
 }
 
-function makeAttrsMap (attrs: Array<Object>): Object {
+function makeAttrsMap (attrs) {
   const map = {}
   for (let i = 0, l = attrs.length; i < l; i++) {
     if (
@@ -628,11 +628,11 @@ function makeAttrsMap (attrs: Array<Object>): Object {
 }
 
 // for script (e.g. type="x/template") or style, do not decode content
-function isTextTag (el): boolean {
+function isTextTag (el) {
   return el.tag === 'script' || el.tag === 'style'
 }
 
-function isForbiddenTag (el): boolean {
+function isForbiddenTag (el) {
   return (
     el.tag === 'style' ||
     (el.tag === 'script' && (

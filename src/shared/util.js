@@ -8,11 +8,11 @@ export function isUndef (v: any): boolean %checks {
   return v === undefined || v === null
 }
 
-export function isDef (v: any): boolean %checks {
+export function isDef (v) {
   return v !== undefined && v !== null
 }
 
-export function isTrue (v: any): boolean %checks {
+export function isTrue (v) {
   return v === true
 }
 
@@ -47,7 +47,7 @@ export function isObject (obj: mixed): boolean %checks {
  */
 const _toString = Object.prototype.toString
 
-export function toRawType (value: any): string {
+export function toRawType (value) {
   return _toString.call(value).slice(8, -1)
 }
 
@@ -74,7 +74,7 @@ export function isValidArrayIndex (val: any): boolean {
 /**
  * Convert a value to a string that is actually rendered.
  */
-export function toString (val: any): string {
+export function toString (val) {
   return val == null
     ? ''
     : typeof val === 'object'

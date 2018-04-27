@@ -1,9 +1,18 @@
 import Vue from './src/platforms/web/entry-runtime-with-compiler'
 
-for(let attr in Vue ) {
-    console.log(attr)
-}
+const appNode = document.getElementById('app');
 
 const vm = new Vue({
-    a: 1
+    el: appNode,
+    data: {
+        a: 1
+    },
+    template: '<div>{{a}}</div>',
+    computed: {
+        b: function () {
+            const res = this.a + 2;
+            return res
+        }
+    }
 })
+

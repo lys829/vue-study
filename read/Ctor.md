@@ -8,20 +8,20 @@
 //initMixin(Vue)
 Vue.prototype._init = function(options?:Object);
 
-stateMixin(Vue)
+//stateMixin(Vue)
 Vue.prototype.$data
 Vue.prototype.$props
 Vue.prototype.$set = (target: Array<any> | Object, key: any, val: any)=> {}
 Vue.prototype.$delete = (target: Array<any> | Object, key: any)=> {}
 Vue.prototype.$watch = (expOrFn: string | Function, cb: any, options?: Object)=> {}
 
-eventsMixin(Vue)
+//eventsMixin(Vue)
 Vue.prototype.$on = (event: string | Array<string>, fn: Function)=> {}
 Vue.prototype.$once = (event: string, fn: Function)=> {}
 Vue.prototype.$off = (event?: string | Array<string>, fn?: Function)=> {}
 Vue.prototype.$emit = (event: string)=> {}
 
-lifecycleMixin(Vue)
+//lifecycleMixin(Vue)
 Vue.prototype._update = (vnode: VNode, hydrating?: boolean)=> {}
 Vue.prototype.$forceUpdate = ()=> {}
 Vue.prototype.$destroy = ()=> {}
@@ -36,7 +36,7 @@ Vue.prototype._render = ()=> {}
 ### 在Vue构造函数上挂载全局API  `core/index.js`
 * 全局API,　服务器渲染相关API(暂不关注), FunctionalRenderContext(暂不关注)，版本信息
 * 主要是静态方法和静态属性
-```
+``` javascript
 //初始化config,只读对象
 Vue.config
 
@@ -74,7 +74,7 @@ Vue.version
 1. 增加Vue.config属性
 2. 针对web平台安装指令和组件
 3. 定义 `__patch__` 和 `$mount` 方法
-```
+``` javascript
 Vue.config = {
     mustUseProp,
     isReservedTag,
@@ -103,8 +103,23 @@ Vue.prototype.$mount
 
 
 ### 重写Vue`$mount`方法　`entry-runtime-with-compipler.js`
-```
+``` javascript
 Vue.compile
+Vue.options = {
+    components: {
+        KeepAlive,
+        Transition,
+        TransitionGroup,
+    },
+    directives: {
+        show,
+        model
+    },
+    filters: {},
+    _base: Vue,
+    render: ()=> {},
+    staticRenderFns: ()=> {}
+}
 ```
 
 

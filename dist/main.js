@@ -84,7 +84,23 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _src_platforms_web_entry_runtime_with_compiler__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_src_platforms_web_entry_runtime_with_compiler__WEBPACK_IMPORTED_MODULE_0__);
 
 
-console.log(_src_platforms_web_entry_runtime_with_compiler__WEBPACK_IMPORTED_MODULE_0___default.a)
+const appNode = document.getElementById('app');
+
+const vm = new _src_platforms_web_entry_runtime_with_compiler__WEBPACK_IMPORTED_MODULE_0___default.a({
+    el: appNode,
+    data: {
+        a: 1
+    },
+    template: '<div>{{a}}</div>',
+    computed: {
+        b: function () {
+            const res = this.a + 2;
+            return res
+        }
+    }
+})
+
+console.log(vm.b)
 
 /***/ }),
 
@@ -612,14 +628,14 @@ function genHandler(name, handler) {
     var code = '';
     var genModifierCode = '';
     var keys = [];
-    for (var _key in handler.modifiers) {
-      if (modifierCode[_key]) {
-        genModifierCode += modifierCode[_key];
+    for (var key in handler.modifiers) {
+      if (modifierCode[key]) {
+        genModifierCode += modifierCode[key];
         // left/right
-        if (keyCodes[_key]) {
-          keys.push(_key);
+        if (keyCodes[key]) {
+          keys.push(key);
         }
-      } else if (_key === 'exact') {
+      } else if (key === 'exact') {
         (function () {
           var modifiers = handler.modifiers;
           genModifierCode += genGuard(['ctrl', 'shift', 'alt', 'meta'].filter(function (keyModifier) {
@@ -629,7 +645,7 @@ function genHandler(name, handler) {
           }).join('||'));
         })();
       } else {
-        keys.push(_key);
+        keys.push(key);
       }
     }
     if (keys.length) {
@@ -701,6 +717,10 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
+// type TransformFunction = (el: ASTElement, code: string) => string;
+// type DataGenFunction = (el: ASTElement) => string;
+// type DirectiveFunction = (el: ASTElement, dir: ASTDirective, warn: Function) => boolean;
+
 var CodegenState =
 // options: CompilerOptions;
 // warn: Function;
@@ -727,6 +747,11 @@ exports.CodegenState = function CodegenState(options) {
   this.staticRenderFns = [];
 };
 
+// export type CodegenResult = {
+//   render: string,
+//   staticRenderFns: Array<string>
+// };
+
 function generate(ast, options) {
   var state = new CodegenState(options);
   var code = ast ? genElement(ast, state) : '_c("div")';
@@ -751,22 +776,22 @@ function genElement(el, state) {
     return genSlot(el, state);
   } else {
     // component or element
-    var _code = void 0;
+    var code = void 0;
     if (el.component) {
-      _code = genComponent(el.component, el, state);
+      code = genComponent(el.component, el, state);
     } else {
       var data = el.plain ? undefined : genData(el, state);
 
       var children = el.inlineTemplate ? null : genChildren(el, state, true);
-      _code = '_c(\'' + el.tag + '\'' + (data ? ',' + data : '' // data
+      code = '_c(\'' + el.tag + '\'' + (data ? ',' + data : '' // data
       ) + (children ? ',' + children : '' // children
       ) + ')';
     }
     // module transforms
     for (var i = 0; i < state.transforms.length; i++) {
-      _code = state.transforms[i](el, _code);
+      code = state.transforms[i](el, code);
     }
-    return _code;
+    return code;
   }
 }
 
@@ -783,20 +808,20 @@ function genOnce(el, state) {
   if (el.if && !el.ifProcessed) {
     return genIf(el, state);
   } else if (el.staticInFor) {
-    var _key = '';
+    var key = '';
     var parent = el.parent;
     while (parent) {
       if (parent.for) {
-        _key = parent.key;
+        key = parent.key;
         break;
       }
       parent = parent.parent;
     }
-    if (!_key) {
+    if (!key) {
       "development" !== 'production' && state.warn('v-once can only be used inside v-for that is keyed. ');
       return genElement(el, state);
     }
-    return '_o(' + genElement(el, state) + ',' + state.onceId++ + ',' + _key + ')';
+    return '_o(' + genElement(el, state) + ',' + state.onceId++ + ',' + key + ')';
   } else {
     return genStatic(el, state);
   }
@@ -1005,17 +1030,17 @@ function genChildren(el, state, checkSkip, altGenElement, altGenNode) {
 function getNormalizationType(children, maybeComponent) {
   var res = 0;
   for (var i = 0; i < children.length; i++) {
-    var _el2 = children[i];
-    if (_el2.type !== 1) {
+    var el = children[i];
+    if (el.type !== 1) {
       continue;
     }
-    if (needsNormalization(_el2) || _el2.ifConditions && _el2.ifConditions.some(function (c) {
+    if (needsNormalization(el) || el.ifConditions && el.ifConditions.some(function (c) {
       return needsNormalization(c.block);
     })) {
       res = 2;
       break;
     }
-    if (maybeComponent(_el2) || _el2.ifConditions && _el2.ifConditions.some(function (c) {
+    if (maybeComponent(el) || el.ifConditions && el.ifConditions.some(function (c) {
       return maybeComponent(c.block);
     })) {
       res = 1;
@@ -1300,6 +1325,11 @@ var len = void 0,
     index = void 0,
     expressionPos = void 0,
     expressionEndPos = void 0;
+
+// type ModelParseResult = {
+//   exp: string,
+//   key: string | null
+// }
 
 function parseModel(val) {
   // Fix https://github.com/vuejs/vue/pull/7730
@@ -2368,6 +2398,8 @@ var platformIsPreTag = void 0;
 var platformMustUseProp = void 0;
 var platformGetTagNamespace = void 0;
 
+// type Attr = { name: string; value: string };
+
 function createASTElement(tag, attrs, parent) {
   return {
     type: 1,
@@ -2511,7 +2543,7 @@ function parse(template, options) {
         } else if (element.slotScope) {
           // scoped slot
           currentParent.plain = false;
-          var _name = element.slotTarget || '"default"';(currentParent.scopedSlots || (currentParent.scopedSlots = {}))[_name] = element;
+          var name = element.slotTarget || '"default"';(currentParent.scopedSlots || (currentParent.scopedSlots = {}))[name] = element;
         } else {
           currentParent.children.push(element);
           element.parent = currentParent;
@@ -2651,6 +2683,13 @@ function processFor(el) {
     }
   }
 }
+
+// type ForParseResult = {
+//   for: string;
+//   alias: string;
+//   iterator1?: string;
+//   iterator2?: string;
+// };
 
 function parseFor(exp) {
   var inMatch = exp.match(forAliasRE);
@@ -2951,6 +2990,11 @@ var buildRegex = (0, _util.cached)(function (delimiters) {
   return new RegExp(open + '((?:.|\\n)+?)' + close, 'g');
 });
 
+// type TextParseResult = {
+//   expression: string,
+//   tokens: Array<string | { '@binding': string }>
+// }
+
 function parseText(text, delimiters) {
   var tagRE = delimiters ? buildRegex(delimiters) : defaultTagRE;
   if (!tagRE.test(text)) {
@@ -3104,6 +3148,30 @@ var _util = __webpack_require__(/*! shared/util */ "./src/shared/util.js");
 
 var _constants = __webpack_require__(/*! shared/constants */ "./src/shared/constants.js");
 
+// export type Config = {
+//   // user
+//   optionMergeStrategies: { [key: string]: Function };
+//   silent: boolean;
+//   productionTip: boolean;
+//   performance: boolean;
+//   devtools: boolean;
+//   errorHandler: ?(err: Error, vm: Component, info: string) => void;
+//   warnHandler: ?(msg: string, vm: Component, trace: string) => void;
+//   ignoredElements: Array<string | RegExp>;
+//   keyCodes: { [key: string]: number | Array<number> };
+
+//   // platform
+//   isReservedTag: (x?: string) => boolean;
+//   isReservedAttr: (x?: string) => boolean;
+//   parsePlatformTagName: (x: string) => string;
+//   isUnknownElement: (x?: string) => boolean;
+//   getTagNamespace: (x?: string) => string | void;
+//   mustUseProp: (tag: string, type: ?string, name: string) => boolean;
+
+//   // legacy
+//   _lifecycleHooks: Array<string>;
+// };
+
 exports.default = {
   /**
    * Option merge strategies (used in core/util/options)
@@ -3194,6 +3262,40 @@ exports.default = {
 
 /***/ }),
 
+/***/ "./src/core/global-api/index.js":
+/*!**************************************!*\
+  !*** ./src/core/global-api/index.js ***!
+  \**************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.initGlobalAPI = initGlobalAPI;
+
+var _constants = __webpack_require__(/*! shared/constants */ "./src/shared/constants.js");
+
+function initGlobalAPI(Vue) {
+    var configDef = {};
+    configDef.get = function () {};
+    // configDef.set = ()=> {} 只读属性
+
+    Object.defineProperty(Vue, 'config', configDef);
+
+    Vue.options = Object.create(null);
+    _constants.ASSET_TYPES.forEach(function (type) {
+        Vue.options[type + 's'] = Object.create(null);
+    });
+
+    Vue.options._base = Vue;
+}
+
+/***/ }),
+
 /***/ "./src/core/index.js":
 /*!***************************!*\
   !*** ./src/core/index.js ***!
@@ -3212,11 +3314,44 @@ var _index = __webpack_require__(/*! ./instance/index */ "./src/core/instance/in
 
 var _index2 = _interopRequireDefault(_index);
 
+var _index3 = __webpack_require__(/*! ./global-api/index */ "./src/core/global-api/index.js");
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+(0, _index3.initGlobalAPI)(_index2.default);
+
+// TODO: $isServer $ssrContext FunctionalRenderContext的定义
 
 _index2.default.version = '1.0.0';
 
 exports.default = _index2.default;
+
+/***/ }),
+
+/***/ "./src/core/instance/events.js":
+/*!*************************************!*\
+  !*** ./src/core/instance/events.js ***!
+  \*************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.eventsMixin = eventsMixin;
+function eventsMixin(Vue) {
+    var hookRE = /^hook:/;
+    Vue.prototype.$on = function (event, fn) {};
+
+    Vue.prototype.$once = function (event, fn) {};
+
+    Vue.prototype.$off = function (event, fn) {};
+
+    Vue.prototype.$emit = function (event) {};
+}
 
 /***/ }),
 
@@ -3236,14 +3371,25 @@ Object.defineProperty(exports, "__esModule", {
 
 var _init = __webpack_require__(/*! ./init */ "./src/core/instance/init.js");
 
+var _state = __webpack_require__(/*! ./state */ "./src/core/instance/state.js");
+
+var _events = __webpack_require__(/*! ./events */ "./src/core/instance/events.js");
+
+var _lifecycle = __webpack_require__(/*! ./lifecycle */ "./src/core/instance/lifecycle.js");
+
+var _render = __webpack_require__(/*! ./render */ "./src/core/instance/render.js");
+
 function Vue(options) {
-    if (this instanceof Vue) {
+    if (!(this instanceof Vue)) {
         console.error('Vue is a constructor and should be called with the `new` keyword');
     }
     this._init(options);
 }
-
 (0, _init.initMixin)(Vue);
+(0, _state.stateMixin)(Vue);
+(0, _events.eventsMixin)(Vue);
+(0, _lifecycle.lifecycleMixin)(Vue);
+(0, _render.renderMixin)(Vue);
 
 exports.default = Vue;
 
@@ -3263,6 +3409,15 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 exports.initMixin = initMixin;
+exports.resolveConstructorOptions = resolveConstructorOptions;
+
+var _index = __webpack_require__(/*! ../util/index */ "./src/core/util/index.js");
+
+var _lifecycle = __webpack_require__(/*! ./lifecycle */ "./src/core/instance/lifecycle.js");
+
+var _render = __webpack_require__(/*! ./render */ "./src/core/instance/render.js");
+
+var _state = __webpack_require__(/*! ./state */ "./src/core/instance/state.js");
 
 var uid = 0;
 function initMixin(Vue) {
@@ -3271,21 +3426,792 @@ function initMixin(Vue) {
         vm._uid = uid++;
 
         vm._isVue = true;
+        vm.$options = (0, _index.mergeOptions)(resolveConstructorOptions(vm.constructor), options || {}, vm);
 
-        vm.$options = {};
-
-        // TODO: 环境不同代理不同
+        // TODO: 环境不同,实现的代理方式不同
         // initProxy
 
+        vm._renderProxy = vm;
+
         vm._self = vm;
+        (0, _lifecycle.initLifecycle)(vm);
+
+        (0, _render.initRender)(vm);
+
+        (0, _state.initState)(vm);
 
         //vm._name = formatComponentName(vm, false);
-
         if (vm.$options.el) {
             vm.$mount(vm.$options.el);
         }
     };
 }
+
+function resolveConstructorOptions(Ctor) {
+    var options = Ctor.options;
+    if (Ctor.super) {}
+    return options;
+}
+
+/***/ }),
+
+/***/ "./src/core/instance/lifecycle.js":
+/*!****************************************!*\
+  !*** ./src/core/instance/lifecycle.js ***!
+  \****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.activeInstance = undefined;
+exports.mountComponent = mountComponent;
+exports.initLifecycle = initLifecycle;
+exports.lifecycleMixin = lifecycleMixin;
+
+var _watcher = __webpack_require__(/*! ../observer/watcher */ "./src/core/observer/watcher.js");
+
+var _watcher2 = _interopRequireDefault(_watcher);
+
+var _vnode = __webpack_require__(/*! ../vdom/vnode */ "./src/core/vdom/vnode.js");
+
+var _index = __webpack_require__(/*! ../util/index */ "./src/core/util/index.js");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var activeInstance = exports.activeInstance = null;
+
+/**
+ * 
+ * @param {Component} vm 
+ * @param {Element} el 
+ * @param {Boolean} hydrating 
+ * @returns {component}
+ */
+function mountComponent(vm, el, hydrating) {
+    vm.$el = el;
+
+    if (!vm.$options.render) {
+        vm.$options.render = _vnode.createEmptyVNode;
+    }
+
+    //TODO: beforeMount钩子
+    var updateComponent = void 0;
+
+    updateComponent = function updateComponent() {
+        vm._update(vm._render(), hydrating);
+    };
+
+    // isRenderWatcher 参数会在Watcher构造函数中将watcher实例绑定到vm的_watcher属性上
+    // watcher的初始化补丁会调用$forceUpdate(e.g 子组件的mounted钩子函数), 这依赖于vm._watcher
+    new _watcher2.default(vm, updateComponent, _index.noop, {}, true); // true: isRenderWatcher
+    hydrating = false;
+
+    if (vm.$node == null) {
+        vm._isMounted = true;
+    }
+
+    return vm;
+}
+
+/**
+ * 
+ * @param {Component} vm 
+ */
+function initLifecycle(vm) {
+    var options = vm.$options;
+
+    vm.$parent = null;
+    vm.$root = parent ? parent.$root : vm;
+
+    vm.$children = [];
+    vm.$refs = {};
+
+    vm._watcher = null;
+    vm._inactive = null;
+    vm._directInactive = false;
+    vm._isMounted = false;
+    vm._isDestroyed = false;
+    vm._isBeingDestroyed = false;
+}
+
+function lifecycleMixin(Vue) {
+    Vue.prototype._update = function (vnode, hydrating) {
+        var vm = this;
+        var prevEl = vm.$el;
+        var prevVnode = vm._node;
+        var prevActiveInstance = activeInstance;
+
+        exports.activeInstance = activeInstance = vm;
+        vm._vnode = vnode;
+
+        if (!prevVnode) {
+            //初始化渲染
+            vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false); //false >> removeOnly
+        } else {}
+        exports.activeInstance = activeInstance = prevActiveInstance;
+
+        if (prevEl) {
+            prevEl.__vue__ = null;
+        }
+        if (vm.$el) {
+            vm.$el.__vue__ = vm;
+        }
+    };
+    Vue.prototype.$forceUpdate = function () {};
+    Vue.prototype.$destroy = function () {};
+}
+
+/***/ }),
+
+/***/ "./src/core/instance/render-helpers/index.js":
+/*!***************************************************!*\
+  !*** ./src/core/instance/render-helpers/index.js ***!
+  \***************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.installRenderHelpers = installRenderHelpers;
+
+var _util = __webpack_require__(/*! shared/util */ "./src/shared/util.js");
+
+var _vnode = __webpack_require__(/*! core/vdom/vnode */ "./src/core/vdom/vnode.js");
+
+function installRenderHelpers(target) {
+    target._s = _util.toString;
+    target._v = _vnode.createTextVNode;
+}
+
+/***/ }),
+
+/***/ "./src/core/instance/render.js":
+/*!*************************************!*\
+  !*** ./src/core/instance/render.js ***!
+  \*************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.initRender = initRender;
+exports.renderMixin = renderMixin;
+
+var _index = __webpack_require__(/*! ./render-helpers/index */ "./src/core/instance/render-helpers/index.js");
+
+var _vnode = __webpack_require__(/*! ../vdom/vnode */ "./src/core/vdom/vnode.js");
+
+var _vnode2 = _interopRequireDefault(_vnode);
+
+var _createElement = __webpack_require__(/*! ../vdom/create-element */ "./src/core/vdom/create-element.js");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+/**
+ * 
+ * @param {Component} vm 
+ */
+function initRender(vm) {
+    vm._vnode = null; // the root of the child tree
+    vm._staticTress = null; // v-once cached trees
+    var options = vm.$options;
+    //此时options._parentVnode为undefined
+
+    //TODO: $slots处理
+
+
+    /**
+     * 在实例上绑定createElement函数
+     * 这样就能获取正确的渲染上下文
+     * 参数依次为:  tag, data, children, normalizationType, alwaysNormalize
+     * 内部版本由模板编译的渲染函数使用
+     */
+    vm._c = function (a, b, c, d) {
+        return (0, _createElement.createElement)(vm, a, b, c, d, false);
+    };
+
+    //规范化(alwaysNormalize)适用于发行版本, 在用户提供的render functions 中使用
+    vm.$createElement = function (a, b, c, d) {
+        return (0, _createElement.createElement)(vm, a, b, c, d, true);
+    };
+
+    //TODO:在vm上定义响应属性 $attrs, $listeners
+}
+
+function renderMixin(Vue) {
+    (0, _index.installRenderHelpers)(Vue.prototype);
+
+    Vue.prototype.$nextTick = function (fn) {};
+    Vue.prototype._render = function () {
+        var vm = this;
+        var render = vm.$options.render;
+
+        var vnode = void 0;
+        try {
+            vnode = render.call(vm._renderProxy, vm.$createElement);
+        } catch (e) {
+            console.error(e);
+        }
+
+        if (!(vnode instanceof _vnode2.default)) {
+            vnode = (0, _vnode.createEmptyVNode)();
+        }
+
+        //set parent
+
+        return vnode;
+    };
+}
+
+/***/ }),
+
+/***/ "./src/core/instance/state.js":
+/*!************************************!*\
+  !*** ./src/core/instance/state.js ***!
+  \************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.proxy = proxy;
+exports.stateMixin = stateMixin;
+exports.initState = initState;
+exports.getData = getData;
+exports.defineComputed = defineComputed;
+
+var _watcher = __webpack_require__(/*! ../observer/watcher */ "./src/core/observer/watcher.js");
+
+var _watcher2 = _interopRequireDefault(_watcher);
+
+var _dep = __webpack_require__(/*! ../observer/dep */ "./src/core/observer/dep.js");
+
+var _index = __webpack_require__(/*! ../observer/index */ "./src/core/observer/index.js");
+
+var _index2 = __webpack_require__(/*! ../util/index */ "./src/core/util/index.js");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var sharedPropertyDefinition = {
+    enumerable: true,
+    configurable: true,
+    get: _index2.noop,
+    set: _index2.noop
+};
+
+function proxy(target, sourceKey, key) {
+    sharedPropertyDefinition.get = function proxyGetter() {
+        return this[sourceKey][key];
+    };
+    sharedPropertyDefinition.set = function proxySetter(val) {
+        this[sourcekey][key] = val;
+    };
+    Object.defineProperty(target, key, sharedPropertyDefinition);
+}
+
+function stateMixin(Vue) {
+    // Vue项目中用的flow检测会存在问题，这里按照原先写法
+    var dataDef = {};
+    dataDef.get = function () {
+        return this._data;
+    };
+    var propsDef = {};
+    propsDef.get = function () {
+        return this._props;
+    };
+    Object.defineProperty(Vue.prototype, '$data', dataDef);
+    Object.defineProperty(Vue.prototype, '$props', dataDef);
+}
+
+function initState(vm) {
+    vm._watchers = [];
+    var opts = vm.$options;
+    //TODO: props methods
+    if (opts.data) {
+        initData(vm);
+    } else {
+        (0, _index.observe)(vm._data = {}, true);
+    }
+
+    if (opts.computed) {
+        initComputed(vm, opts.computed);
+    }
+    //TODO: watch
+}
+
+function initData(vm) {
+    var data = vm.$options.data;
+    data = vm._data = typeof data === 'function' ? getData(data, vm) : data || {};
+
+    // proxy data on instance
+    var keys = Object.keys(data);
+    //TODO: props methods
+    var i = keys.length;
+    while (i--) {
+        var key = keys[i];
+        if (!(0, _index2.isReserved)(key)) {
+            proxy(vm, '_data', key);
+        }
+    }
+
+    // observe data
+    (0, _index.observe)(data, true /* asRootData */);
+}
+
+/**
+ * 
+ * @param {Function} data 
+ * @param {Component} vm 
+ */
+function getData(data, vm) {
+    // #7573 disable dep collection when invoking data getters
+    // 调用data getters禁用dep collection
+    (0, _dep.pushTarget)();
+    try {
+        return data.call(vm, vm);
+    } catch (e) {
+        handleError(e, vm, 'data()');
+        return {};
+    } finally {
+        (0, _dep.popTarget)();
+    }
+}
+
+var computedWatcherOptions = { computed: true };
+
+function initComputed(vm, computed) {
+    var watchers = vm._computedWatchers = Object.create(null);
+
+    for (var key in computed) {
+        var userDef = computed[key];
+        var getter = typeof userDef === 'function' ? userDef : userDef.get;
+
+        //为计算属性绑定内部watcher
+        watchers[key] = new _watcher2.default(vm, getter, _index2.noop, computedWatcherOptions);
+
+        if (!(key in vm)) {
+            defineComputed(vm, key, userDef);
+        }
+    }
+}
+
+/**
+ * 
+ * @param {*} target 
+ * @param {String} key 
+ * @param {Object|Function} userDef 
+ */
+function defineComputed(target, key, userDef) {
+    //NOTE: 去掉了服务端渲染的逻辑判断
+
+    if (typeof userDef === 'function') {
+        sharedPropertyDefinition.get = createComputedGetter(key);
+        sharedPropertyDefinition.set = _index2.noop;
+    }
+
+    Object.defineProperty(target, key, sharedPropertyDefinition);
+}
+
+function createComputedGetter(key) {
+    return function computedGetter() {
+        var watcher = this._computedWatchers && this._computedWatchers[key];
+        if (watcher) {
+            watcher.depend();
+            return watcher.evaluate();
+        }
+    };
+}
+
+/***/ }),
+
+/***/ "./src/core/observer/dep.js":
+/*!**********************************!*\
+  !*** ./src/core/observer/dep.js ***!
+  \**********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+exports.pushTarget = pushTarget;
+exports.popTarget = popTarget;
+
+var _watcher = __webpack_require__(/*! ./watcher */ "./src/core/observer/watcher.js");
+
+var _watcher2 = _interopRequireDefault(_watcher);
+
+var _index = __webpack_require__(/*! ../util/index */ "./src/core/util/index.js");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var uid = 0;
+
+var Dep = function () {
+    function Dep() {
+        _classCallCheck(this, Dep);
+
+        this.id = uid++;
+        this.subs = [];
+    }
+
+    _createClass(Dep, [{
+        key: 'addSub',
+        value: function addSub(sub) {
+            this.subs.push(sub);
+        }
+    }, {
+        key: 'removeSub',
+        value: function removeSub(sub) {
+            (0, _index.remove)(this.subs, sub);
+        }
+    }, {
+        key: 'depend',
+        value: function depend() {
+            if (Dep.target) {
+                Dep.target.addDep(this);
+            }
+        }
+    }, {
+        key: 'notify',
+        value: function notify() {
+            var subs = this.subs.slice();
+            for (var i = 0, l = subs.length; i < l; i++) {
+                subs[i].update();
+            }
+        }
+    }]);
+
+    return Dep;
+}();
+
+exports.default = Dep;
+
+
+Dep.target = null;
+var targetStack = [];
+
+function pushTarget(_target) {
+    if (Dep.target) {
+        targetStack.push(Dep.target);
+    }
+    Dep.target = _target;
+}
+function popTarget() {
+    Dep.target = targetStack.pop();
+}
+
+/***/ }),
+
+/***/ "./src/core/observer/index.js":
+/*!************************************!*\
+  !*** ./src/core/observer/index.js ***!
+  \************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.Observer = exports.shouldObserve = undefined;
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+exports.toggleObserving = toggleObserving;
+exports.observe = observe;
+exports.defineReactive = defineReactive;
+
+var _dep = __webpack_require__(/*! ./dep */ "./src/core/observer/dep.js");
+
+var _dep2 = _interopRequireDefault(_dep);
+
+var _index = __webpack_require__(/*! ../util/index */ "./src/core/util/index.js");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+/**
+ * 处理某些情况下,停用对对象属性的观察
+ */
+var shouldObserve = exports.shouldObserve = true;
+function toggleObserving(value) {
+    exports.shouldObserve = shouldObserve = value;
+}
+
+var Observer = exports.Observer = function () {
+    function Observer(value) {
+        _classCallCheck(this, Observer);
+
+        this.value = value;
+        this.dep = new _dep2.default();
+        this.vmCount = 0;
+        (0, _index.def)(value, '__ob__', this);
+        if (Array.isArray(value)) {
+            console.log('no');
+        } else {
+            this.walk(value);
+        }
+    }
+
+    _createClass(Observer, [{
+        key: 'walk',
+        value: function walk(obj) {
+            var keys = Object.keys(obj);
+            for (var i = 0; i < keys.length; i++) {
+                defineReactive(obj, keys[i]);
+            }
+        }
+    }]);
+
+    return Observer;
+}();
+
+function observe(value, asRootData) {
+    if (!(0, _index.isObject)(value)) {
+        return;
+    }
+    var ob = null;
+    if ((0, _index.hasOwn)(value, '__ob__') && value.__ob__ instanceof Observer) {
+        ob = value.__ob__;
+    } else if (shouldObserve && (0, _index.isPlainObject)(value) && Object.isExtensible(value) && !value.isVue) {
+        ob = new Observer(value);
+    }
+
+    if (asRootData && ob) {
+        ob.vmCount++;
+    }
+    return ob;
+}
+
+/**
+ * 在传入的对象上定义可响应的属性
+ * @param {Object} obj 
+ * @param {String} key 
+ * @param {*} val 
+ * @param {Function} customSetter？
+ * @param {Boolean} shallow？
+ */
+function defineReactive(obj, key, val, customSetter, shallow) {
+    var dep = new _dep2.default();
+    var property = Object.getOwnPropertyDescriptor(obj, val);
+    if (property && property.configurable === false) {
+        return;
+    }
+
+    // 考虑之前定义的getter与setter
+    var getter = property && property.get;
+    var setter = property && property.set;
+
+    if ((!getter || setter) && arguments.length === 2) {
+        // NOTE: 这里触发了一次求值
+        val = obj[key];
+    }
+
+    var childOb = !shallow && observe(val);
+    Object.defineProperty(obj, key, {
+        enumerable: true,
+        configurable: true,
+        get: function get() {
+            var value = getter ? getter.call(obj) : val;
+            if (_dep2.default.target) {
+                dep.depend();
+                if (childOb) {}
+            }
+            return value;
+        },
+
+        set: function set(newVal) {
+            var value = getter ? getter.call(obj) : val;
+            if (newVal === value || newVal !== newVal && value !== value) {
+                return;
+            }
+            if (setter) {
+                setter.call(obj, newVal);
+            } else {
+                val = newVal;
+            }
+            childOb = !shallow && observe(newVal);
+            dep.notify();
+        }
+    });
+}
+
+/***/ }),
+
+/***/ "./src/core/observer/watcher.js":
+/*!**************************************!*\
+  !*** ./src/core/observer/watcher.js ***!
+  \**************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _index = __webpack_require__(/*! ../util/index */ "./src/core/util/index.js");
+
+var _dep = __webpack_require__(/*! ./dep */ "./src/core/observer/dep.js");
+
+var _dep2 = _interopRequireDefault(_dep);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var uid = 0;
+
+var watch = function () {
+    function watch(vm, expOrFn, cb, options, isRenderWatcher) {
+        _classCallCheck(this, watch);
+
+        this.vm = vm;
+        if (isRenderWatcher) {
+            // 判断这是render中绑定的watcher
+            vm._watcher = this;
+        }
+
+        vm._watchers.push(this);
+        if (options) {
+            this.computed = !!options.computed;
+        }
+
+        //TODO: 完善
+
+        this.cb = cb;
+        this.id = ++uid;
+        this.active = true;
+        this.dirty = this.computed; //针对计算属性的watchers
+        this.deps = [];
+        this.newDeps = [];
+        this.depIds = new Set();
+        this.newDepIds = new Set();
+        this.expression = '';
+
+        if (typeof expOrFn === 'function') {
+            this.getter = expOrFn;
+        } else {}
+
+        if (this.computed) {
+            this.value = undefined;
+            this.dep = new _dep2.default();
+        } else {
+            this.value = this.get();
+        }
+    }
+
+    _createClass(watch, [{
+        key: 'get',
+        value: function get() {
+            (0, _dep.pushTarget)(this);
+            var value = void 0;
+            var vm = this.vm;
+            try {
+                value = this.getter.call(vm, vm);
+            } catch (e) {
+                console.error(e);
+            } finally {
+                (0, _dep.popTarget)();
+            }
+            return value;
+        }
+
+        /**
+         * 添加一个依赖关系到newDeps中
+         * 添加watch到依赖对象的订阅列表
+         * @param {Dep} dep 
+         */
+
+    }, {
+        key: 'addDep',
+        value: function addDep(dep) {
+            var id = dep.id;
+            if (!this.newDepIds.has(id)) {
+                this.newDepIds.add(id);
+                this.newDeps.push(dep);
+                if (!this.depIds.has(id)) {
+                    dep.addSub(this);
+                }
+            }
+        }
+    }, {
+        key: 'cleanupDeps',
+        value: function cleanupDeps() {
+            var i = this.deps.length;
+            while (i--) {
+                var dep = this.deps[i];
+                if (!this.newDepIds.has(dep.id)) {
+                    dep.removeSub(this);
+                }
+            }
+            var tmp = this.depIds;
+            this.depIds = this.newDepIds;
+            this.newDepIds = tmp;
+            this.newDepIds.clear();
+            tmp = this.deps;
+            this.deps = this.newDeps;
+            this.newDeps = tmp;
+            this.newDeps.length = 0;
+        }
+    }, {
+        key: 'update',
+        value: function update() {}
+    }, {
+        key: 'evaluate',
+        value: function evaluate() {
+            if (this.dirty) {
+                this.value = this.get();
+                this.dirty = false;
+            }
+            return this.value;
+        }
+    }, {
+        key: 'depend',
+        value: function depend() {
+            if (this.dep && _dep2.default.target) {
+                this.dep.depend();
+            }
+        }
+    }]);
+
+    return watch;
+}();
+
+exports.default = watch;
 
 /***/ }),
 
@@ -3439,6 +4365,30 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
+var _util = __webpack_require__(/*! shared/util */ "./src/shared/util.js");
+
+Object.keys(_util).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _util[key];
+    }
+  });
+});
+
+var _lang = __webpack_require__(/*! ./lang */ "./src/core/util/lang.js");
+
+Object.keys(_lang).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _lang[key];
+    }
+  });
+});
+
 var _options = __webpack_require__(/*! ./options */ "./src/core/util/options.js");
 
 Object.keys(_options).forEach(function (key) {
@@ -3465,6 +4415,68 @@ Object.keys(_env).forEach(function (key) {
 
 /***/ }),
 
+/***/ "./src/core/util/lang.js":
+/*!*******************************!*\
+  !*** ./src/core/util/lang.js ***!
+  \*******************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.isReserved = isReserved;
+exports.def = def;
+exports.parsePath = parsePath;
+/**
+ * 检测Vue的保留名
+ * @param {String} str 
+ */
+function isReserved(str) {
+    var c = (str + '').charCodeAt(0);
+    return c === 0x24 || c === 0x5F;
+}
+
+/**
+ * 定义对象的属性
+ * @param {Object} obj 
+ * @param {String} key 
+ * @param {*} val 
+ * @param {Boolean} enumerable?
+ */
+function def(obj, key, val, enumerable) {
+    Object.defineProperty(obj, key, {
+        value: val,
+        enumerable: !!enumerable,
+        writable: true,
+        configurable: true
+    });
+}
+
+var bailRE = /[^\w.$]/;
+/**
+ * 
+ * @param {String} path 
+ */
+function parsePath(path) {
+    if (bailRE.test(path)) {
+        return;
+    }
+    var segments = path.split('.');
+    return function (obj) {
+        for (var i = 0; i < segments.length; i++) {
+            if (!obj) return;
+            obj = obj[segments[i]];
+        }
+        return obj;
+    };
+}
+
+/***/ }),
+
 /***/ "./src/core/util/options.js":
 /*!**********************************!*\
   !*** ./src/core/util/options.js ***!
@@ -3478,7 +4490,126 @@ Object.keys(_env).forEach(function (key) {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
+exports.mergeDataOrFn = mergeDataOrFn;
 exports.mergeOptions = mergeOptions;
+
+var _config = __webpack_require__(/*! ../config */ "./src/core/config.js");
+
+var _config2 = _interopRequireDefault(_config);
+
+var _util = __webpack_require__(/*! shared/util */ "./src/shared/util.js");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+/**
+ * 覆盖策略，处理如何合并父组件选项和子组件选项以及参数选项
+ */
+var strats = _config2.default.optionMergeStrategies;
+
+function mergeData(to, from) {
+    if (!from) {
+        return to;
+    }
+    var key = void 0,
+        toVal = void 0,
+        fromVal = void 0;
+    var keys = Object.keys(from);
+    for (var i = 0; i < keys.length; i++) {
+        key = keys[i];
+        toVal = to[key];
+        fromVal = from[key];
+        if (!(0, _util.hasOwn)(to, key)) {
+            set(to, key, fromVal);
+        } else if ((0, _util.isPlainObject)(toVal) && (0, _util.isPlainObject)(fromVal)) {
+            mergeData(toVal, fromVal);
+        }
+    }
+    return to;
+}
+
+/**
+ * 
+ * @param {*} parentVal 
+ * @param {*} childVal 
+ * @param {Component} vm 
+ */
+function mergeDataOrFn(parentVal, childVal, vm) {
+    if (!vm) {
+        //in a Vue.extend merge, both should be functions
+        if (!childVal) {
+            return parentVal;
+        }
+        if (!parentVal) {
+            return childVal;
+        }
+
+        return function mergedDataFn() {
+            return mergeData(typeof childVal === 'function' ? childVal.call(this, this) : childVal, typeof parentVal === 'function' ? parentVal.call(this, this) : parentVal);
+        };
+    } else {
+        return function mergedInstanceDataFn() {
+            var instanceData = typeof childVal === 'function' ? childVal.call(vm, vm) : childVal;
+            var defaultData = typeof parentVal === 'function' ? parentVal.call(vm, vm) : parentVal;
+            if (instanceData) {
+                return mergeData(instanceData, defaultData);
+            } else {
+                return defaultData;
+            }
+        };
+    }
+}
+
+/**
+ * 合并选项中data属性
+ * @param {*} parentVal 
+ * @param {*} childVal 
+ * @param {Component} vm 
+ */
+strats.data = function (parentVal, childVal, vm) {
+    if (!vm) {
+        if (childVal && typeof childVal !== 'function') {
+            return parentVal;
+        }
+        return mergeDataOrFn(parentVal, childVal);
+    }
+
+    return mergeDataOrFn(parentVal, childVal, vm);
+};
+
+var defaultStrat = function defaultStrat(parentVal, childVal) {
+    return childVal === undefined ? parentVal : childVal;
+};
+
+//TODO: 策略合并的限制
+
+function normalizeProps(options, vm) {
+    var props = options.props;
+    if (!props) {
+        return;
+    }
+    var res = {};
+    var i = void 0,
+        val = void 0,
+        name = void 0;
+    if (Array.isArray(props)) {
+        i = props.length;
+        while (i--) {
+            val = props[i];
+            if (typeof val === 'string') {
+                name = (0, _util.camelize)(val);
+                res[name] = { type: null };
+            }
+        }
+    }
+    options.props = res;
+}
+
+/**
+ * vm没有parent时, parent为构造函数Vue的options选项
+ * @param {Objetc} parent 
+ * @param {Objetc} child 
+ * @param {Component} vm 
+ */
 function mergeOptions(parent, child, vm) {
     //TODO: checkComponents(child)
 
@@ -3486,9 +4617,310 @@ function mergeOptions(parent, child, vm) {
         child = child.options;
     }
 
+    //规范化参数
+    //TODO: normalize
+
+    //TODO: extend
+
+    //TODO: mixins
+
     var options = {};
+    var key = void 0;
+    for (key in parent) {
+        mergeField(key);
+    }
+    for (key in child) {
+        if (!(0, _util.hasOwn)(parent, key)) {
+            mergeField(key);
+        }
+    }
+
+    function mergeField(key) {
+        //每一个选项都有对应的合并策略
+        var strat = strats[key] || defaultStrat;
+        options[key] = strat(parent[key], child[key], vm, key);
+    }
 
     return options;
+}
+
+/***/ }),
+
+/***/ "./src/core/vdom/create-element.js":
+/*!*****************************************!*\
+  !*** ./src/core/vdom/create-element.js ***!
+  \*****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.createElement = createElement;
+exports._createElement = _createElement;
+
+var _vnode = __webpack_require__(/*! ./vnode */ "./src/core/vdom/vnode.js");
+
+var _vnode2 = _interopRequireDefault(_vnode);
+
+var _index = __webpack_require__(/*! ../util/index */ "./src/core/util/index.js");
+
+var _config = __webpack_require__(/*! ../config */ "./src/core/config.js");
+
+var _config2 = _interopRequireDefault(_config);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var SIMPLE_NORMALIZE = 1;
+var ALWAYS_NORMALIZE = 2;
+
+function createElement(context, tag, data, children, normalizationType, alwaysNormalize) {
+    console.log('createElement: >> ', context, tag, data, children, normalizationType, alwaysNormalize);
+    //TODO: 未判断原始值
+    if (Array.isArray(data)) {
+        normalizationType = children;
+        children = data;
+        data = undefined;
+    }
+
+    if ((0, _index.isTrue)(alwaysNormalize)) {
+        normalizationType = ALWAYS_NORMALIZE;
+    }
+
+    return _createElement(context, tag, data, children, normalizationType);
+}
+
+function _createElement(context, tag, data, children, normalizationType) {
+    //TODO: 判断data是否为 observed data
+
+    if (!tag) {
+        return _vnode.createEmptyVNode;
+    }
+
+    if (normalizationType === ALWAYS_NORMALIZE) {
+        // children = 
+    }
+
+    var vnode = void 0,
+        ns = void 0;
+    if (typeof tag === 'string') {
+        var Ctor = void 0;
+        ns = _config2.default.getTagNamespace(tag);
+        vnode = new _vnode2.default('div', data, children, undefined, undefined, context);
+    }
+
+    if (Array.isArray(vnode)) {
+        return vnode;
+    } else if ((0, _index.isDef)(vnode)) {
+        return vnode;
+    } else {
+        return (0, _vnode.createEmptyVNode)();
+    }
+}
+
+/***/ }),
+
+/***/ "./src/core/vdom/patch.js":
+/*!********************************!*\
+  !*** ./src/core/vdom/patch.js ***!
+  \********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.createPatchFunction = createPatchFunction;
+
+var _vnode = __webpack_require__(/*! ./vnode */ "./src/core/vdom/vnode.js");
+
+var _vnode2 = _interopRequireDefault(_vnode);
+
+var _index = __webpack_require__(/*! ../util/index */ "./src/core/util/index.js");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function createPatchFunction(backend) {
+    var i = void 0,
+        j = void 0;
+    var cbs = {};
+
+    var nodeOps = backend.nodeOps;
+
+
+    function emptyNodeAt(elm) {
+        return new _vnode2.default(nodeOps.tagName(elm).toLowerCase(), {}, [], undefined, elm);
+    }
+
+    var creatingElmInVPre = 0;
+    function createElm(vnode, insertedVnodeQueue, parentElm, refElm, nested, ownerArray, index) {
+        var data = vnode.data;
+        var children = vnode.children;
+        var tag = vnode.tag;
+
+        if ((0, _index.isDef)(tag)) {
+            // NOTE: 未考虑SVG元素
+            vnode.elm = nodeOps.createElement(tag, vnode);
+
+            createChildren(vnode, children, insertedVnodeQueue);
+            if ((0, _index.isDef)(data)) {
+                //TODO: 钩子函数
+            }
+            insert(parentElm, vnode.elm, refElm);
+        } else if ((0, _index.isTrue)(vnode.isComment)) {
+            //
+        } else {
+            vnode.elm = nodeOps.createTextNode(vnode.text);
+            insert(parentElm, vnode.elm, refElm);
+        }
+    }
+
+    function insert(parent, elm, ref) {
+        if ((0, _index.isDef)(parent)) {
+            if ((0, _index.isDef)(ref)) {
+                if (ref.parentNode === parent) {
+                    nodeOps.insertBefore(parent, elm, ref);
+                }
+            } else {
+                console.log(parent, elm);
+                nodeOps.appendChild(parent, elm);
+            }
+        }
+    }
+
+    function createChildren(vnode, children, insertedVnodeQueue) {
+        if (Array.isArray(children)) {
+            for (var _i = 0; _i < children.length; ++_i) {
+                console.log();
+                createElm(children[_i], insertedVnodeQueue, vnode.elm, null, true, children, _i);
+            }
+        } else if ((0, _index.isPrimitive)(vnode.text)) {
+            nodeOps.appendChild(vnode.elm, nodeOps.createTextNode(String(vnode.text)));
+        }
+    }
+
+    function removeNode(el) {
+        var parent = nodeOps.parentNode(el);
+        if ((0, _index.isDef)(parent)) {
+            nodeOps.removeChild(parent, el);
+        }
+    }
+
+    function removeVnodes(parentElm, vnodes, startIdx, endIdx) {
+        for (; startIdx <= endIdx; ++startIdx) {
+            var ch = vnodes[startIdx];
+            if ((0, _index.isDef)(ch)) {
+                if ((0, _index.isDef)(ch.tag)) {} else {
+                    // Text node
+                    removeNode(ch.elm);
+                }
+            }
+        }
+    }
+
+    return function patch(oldVnode, vnode, hydrating, removeOnly) {
+
+        var isInitialPatch = false;
+        var insertedVnodeQueue = [];
+
+        if ((0, _index.isUndef)(oldVnode)) {
+            //暂无
+        } else {
+            var isRealElement = (0, _index.isDef)(oldVnode.nodeType);
+            if (!isRealElement) {} else {
+                if (isRealElement) {
+                    //挂载一个真正的DOM节点
+                    //NOTE:忽略服务端渲染
+
+                    //创建一个VNode来取代
+                    oldVnode = emptyNodeAt(oldVnode);
+                }
+
+                //取代已经存在的元素
+                var oldElm = oldVnode.elm;
+                var parentElm = nodeOps.parentNode(oldElm);
+
+                // 创建新的节点
+                createElm(vnode, insertedVnodeQueue, null, nodeOps.nextSibling(oldElm));
+
+                if ((0, _index.isDef)(parentElm)) {
+                    removeVnodes(parentElm, [oldVnode], 0, 0);
+                } else {}
+            }
+        }
+    };
+}
+
+/***/ }),
+
+/***/ "./src/core/vdom/vnode.js":
+/*!********************************!*\
+  !*** ./src/core/vdom/vnode.js ***!
+  \********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.createTextVNode = createTextVNode;
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var VNode = function VNode(tag, data, children, text, elm, context, componentOptions, asyncFactory) {
+    _classCallCheck(this, VNode);
+
+    this.tag = tag;
+    this.data = data;
+    this.children = children;
+    this.text = text;
+    this.elm = elm;
+    this.ns = undefined;
+    this.context = context;
+    this.fnContext = undefined;
+    this.fnOptions = undefined;
+    this.fnScopeId = undefined;
+    this.key = data && data.key;
+    this.componentOptions = componentOptions;
+    this.componentInstance = undefined;
+    this.parent = undefined;
+    this.raw = false;
+    this.isStatic = false;
+    this.isRootInsert = true;
+    this.isComment = false;
+    this.isCloned = false;
+    this.isOnce = false;
+    this.asyncFactory = asyncFactory;
+    this.asyncMeta = undefined;
+    this.isAsyncPlaceholder = false;
+};
+
+exports.default = VNode;
+var createEmpty = exports.createEmpty = function createEmpty(text) {
+    var node = new VNode();
+    node.text = text;
+    node.isComment = true;
+    return node;
+};
+
+var createEmptyVNode = exports.createEmptyVNode = function createEmptyVNode(text) {
+    var node = new VNode();
+    node.text = text;
+    node.isComment = true;
+    return node;
+};
+
+function createTextVNode(val) {
+    return new VNode(undefined, undefined, undefined, String(val));
 }
 
 /***/ }),
@@ -4103,7 +5535,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var mount = _index2.default.prototype.$mount;
 _index2.default.prototype.$mount = function (el, hydrating) {
-    el = (0, _index3.query)(el);
+    el = el && (0, _index3.query)(el);
 
     //TODO:排除 body或者html作为挂载元素
 
@@ -4112,23 +5544,21 @@ _index2.default.prototype.$mount = function (el, hydrating) {
     // 将template/el转化为render函数
     if (!options.render) {
         var template = options.template;
+        //NOTE:此处省略到了其他template形式
         if (template) {
-            //TODO: template >> render function
-        } else if (el) {
-            template = getOuterHTML(el);
+            var _compileToFunctions = (0, _index4.compileToFunctions)(template, {
+                shouldDecodeNewlines: _compat.shouldDecodeNewlines,
+                shouldDecodeNewlinesForHref: _compat.shouldDecodeNewlinesForHref,
+                delimiters: options.delimiters,
+                comments: options.comments
+            }, this),
+                render = _compileToFunctions.render,
+                staticRenderFns = _compileToFunctions.staticRenderFns;
+
+            options.render = render;
+            options.staticRenderFns = staticRenderFns;
         }
     }
-
-    // if (template) {
-    //     const { render, staticRenderFns } = compileToFunctions(template, {
-    //         shouldDecodeNewlines,
-    //         shouldDecodeNewlinesForHref,
-    //         delimiters: options.delimiters,
-    //         comments: options.comments
-    //     }, this);
-    //     options.render = render;
-    //     options.staticRenderFns = staticRenderFns;
-    // }
     return mount.call(this, el, hydrating);
 };
 
@@ -4168,11 +5598,19 @@ var _index2 = _interopRequireDefault(_index);
 
 var _index3 = __webpack_require__(/*! ../../../core/util/index */ "./src/core/util/index.js");
 
+var _lifecycle = __webpack_require__(/*! core/instance/lifecycle */ "./src/core/instance/lifecycle.js");
+
 var _util = __webpack_require__(/*! ../util */ "./src/platforms/web/util/index.js");
+
+var _patch = __webpack_require__(/*! ./patch */ "./src/platforms/web/runtime/patch.js");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-//TODO: VUE配置
+//TODO:  install platform specific utils
+
+//TODO: install platform runtime directives & components
+
+_index2.default.prototype.__patch__ = _patch.patch;
 
 /**
  * 
@@ -4182,10 +5620,112 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  */
 _index2.default.prototype.$mount = function (el, hydrating) {
   el = el && _index3.inBrowser ? (0, _util.query)(el) : undefined;
-  return mountComponent(this, el, hydrating);
+  return (0, _lifecycle.mountComponent)(this, el, hydrating);
 };
 
 exports.default = _index2.default;
+
+/***/ }),
+
+/***/ "./src/platforms/web/runtime/node-ops.js":
+/*!***********************************************!*\
+  !*** ./src/platforms/web/runtime/node-ops.js ***!
+  \***********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.createElement = createElement;
+exports.createTextNode = createTextNode;
+exports.createCommnt = createCommnt;
+exports.insertBefore = insertBefore;
+exports.removeChild = removeChild;
+exports.appendChild = appendChild;
+exports.parentNode = parentNode;
+exports.nextSibling = nextSibling;
+exports.tagName = tagName;
+exports.setTextContent = setTextContent;
+exports.setStyleScope = setStyleScope;
+function createElement(tagName, vnode) {
+    var elm = document.createElement(tagName);
+    if (tagName !== 'select') {
+        return elm;
+    }
+    //TODO: select 的 mutiple
+    return elm;
+}
+
+function createTextNode(text) {
+    return document.createTextNode(text);
+}
+
+function createCommnt(text) {
+    return document.createComment(text);
+}
+
+function insertBefore(parentNode, newNode, referenceNode) {
+    parentNode.insertBefore(newNode, referenceNode);
+}
+
+function removeChild(node, child) {
+    node.removeChild(child);
+}
+
+function appendChild(node, child) {
+    node.appendChild(child);
+}
+
+function parentNode(node) {
+    return node.parentNode;
+}
+
+function nextSibling(node) {
+    return node.nextSibling;
+}
+
+function tagName(node) {
+    return node.tagName;
+}
+
+function setTextContent(node, text) {
+    node.textContent = text;
+}
+
+function setStyleScope(node, scopeId) {
+    node.setAttribute(scopeId, '');
+}
+
+/***/ }),
+
+/***/ "./src/platforms/web/runtime/patch.js":
+/*!********************************************!*\
+  !*** ./src/platforms/web/runtime/patch.js ***!
+  \********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.patch = undefined;
+
+var _nodeOps = __webpack_require__(/*! ./node-ops */ "./src/platforms/web/runtime/node-ops.js");
+
+var nodeOps = _interopRequireWildcard(_nodeOps);
+
+var _patch = __webpack_require__(/*! core/vdom/patch */ "./src/core/vdom/patch.js");
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
+var patch = exports.patch = (0, _patch.createPatchFunction)({ nodeOps: nodeOps });
 
 /***/ }),
 

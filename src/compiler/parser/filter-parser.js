@@ -2,7 +2,7 @@
 
 const validDivisionCharRE = /[\w).+\-_$\]]/
 
-export function parseFilters (exp: string): string {
+export function parseFilters (exp) {
   let inSingle = false
   let inDouble = false
   let inTemplateString = false
@@ -84,7 +84,7 @@ export function parseFilters (exp: string): string {
   return expression
 }
 
-function wrapFilter (exp: string, filter: string): string {
+function wrapFilter (exp, filter) {
   const i = filter.indexOf('(')
   if (i < 0) {
     // _f: resolveFilter
