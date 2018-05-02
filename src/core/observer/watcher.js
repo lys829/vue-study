@@ -6,11 +6,12 @@ import {
     handleError
 } from '../util/index'
 
+import {queueWatcher} from './scheduler'
 import Dep, { pushTarget, popTarget } from './dep'
 
 let uid = 0;
 
-export default class watch {
+export default class Watch {
     constructor(vm, expOrFn, cb, options, isRenderWatcher) {
         this.vm = vm; 
         if(isRenderWatcher) {
@@ -45,10 +46,18 @@ export default class watch {
             this.value = undefined;
             this.dep = new Dep();
         } else {
-            this.value = this.get();            
+            /**
+             * 1. 赋值value
+             * 2. watcher添加到依赖对象的subs列表
+             */
+            this.value = this.get();  
         }
     }
 
+    /**
+     * 1.computed第一次求值和依赖的值改变时触发
+     * 2.data 两种情况: 初始化时触发, 改变data的属性时触发
+     */
     get() {
         pushTarget(this);
         let value;
@@ -99,7 +108,44 @@ export default class watch {
     }
 
     update() {
-        
+        if(this.computed) {
+            // 计算属性有两种模式: lazy和activated
+            // 初始化默认是lazy,当只是一个订阅者依赖时才会被激活,这个订阅者通常是另一个计算属性或组件的render函数中
+            if(this.dep.subs.length === 0) {
+                // 在lazy模式下, 只有在必要的情况下才执行计算,通过dirty来实现
+                //当访问计算属性时, 是通过this.evaluate()方法来计算
+                this.dirty = true;
+            } else {
+                this.getAndInvoke(()=> {
+                    // TODO: 暂不知作用
+                    this.dep.notify();
+                })
+            }
+        } else {
+            queueWatcher(this)
+        }
+    }
+
+    // 调度任务中用到的接口
+    run() {
+        if(this.active) {
+            this.getAndInvoke(this.cb);
+        }
+    }
+
+    getAndInvoke(cb) {
+        const value = this.get();
+        /**
+         * 1. 当computed属性(b)依赖的值(a)改变时, 再次求值时, 会触发条件value !== this.value
+         */
+        if(value !== this.value || isObject(value) || this.deep) { //this.deep暂不考虑
+            //设置新的值
+            const oldValue = this.value;
+            this.value = value;
+            this.dirty = false;
+            
+            cb.call(this.vm, value, oldValue);
+        }
     }
 
     /**
@@ -114,7 +160,8 @@ export default class watch {
     }
 
     /**
-     * 此方法值针对计算属性
+     * 此方法值针对计算属性 
+     * 
      */
     depend() {
         if(this.dep && Dep.target) {

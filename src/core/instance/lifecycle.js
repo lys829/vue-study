@@ -69,18 +69,18 @@ export function lifecycleMixin(Vue) {
     Vue.prototype._update = function(vnode, hydrating) {
         const vm = this;
         const prevEl = vm.$el;
-        const prevVnode = vm._node;
+        const prevVnode = vm._vnode;
         const prevActiveInstance = activeInstance;
 
         activeInstance = vm;
         vm._vnode = vnode;
-
+        
         if(!prevVnode) {
             //初始化渲染 替换$el
             vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false); //false >> removeOnly
         } else {
             //用于更新变更
-            
+            vm.$el = vm.__patch__(prevVnode, vnode);
         }
         activeInstance = prevActiveInstance;
 

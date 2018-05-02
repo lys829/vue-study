@@ -28,6 +28,11 @@ Vue.prototype.$destroy = ()=> {}
 
 renderMixin(Vue)
 //在Vue.prototype绑定helpers
+vue.prototype._s = toString
+vue.prototype._v = createTextNode
+vue.prototype._n = toNumber
+vue.prototype._e = createEmptyVNode
+.....
 
 Vue.prototype.$nextTick = (fn: Function)=> {}
 Vue.prototype._render = ()=> {}

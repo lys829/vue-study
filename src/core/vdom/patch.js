@@ -9,6 +9,30 @@ import {
     isPrimitive
 } from '../util/index'
 
+function sameVnode(a, b) {
+    return (
+        a.key === b.key && (
+            (
+                a.tag === b.tag &&
+                a.isComment === b.isComment && 
+                isDef(a.data) === isDef(b.data) //TODO:未加上input的判断
+            ) || (
+                isTrue(a.isAsyncPlaceholder) && 
+                a.asyncFactory === b.asyncFactory &&
+                isUndef(b.asyncFactory.error)
+            )
+        )
+    )
+}
+
+/* function sameInpuType(a, b) {
+    if(a.tag !== 'input') return true;
+    let i
+    const typeA = isDef(i = a.data) && isDef(i = i.attrs) && i.type
+    const typeB = isDef(i = b.data) && isDef(i = i.attrs) && i.type
+    return typeA === typeB || isTextInputType(typeA) && isTextInputType(typeB)
+} */
+
 export function createPatchFunction(backend) {
     let i, j;
     const cbs = {};
@@ -86,6 +110,68 @@ export function createPatchFunction(backend) {
         }
     }
 
+    /**
+     * 根节点的是否有tag属性
+     * @param {Vnode} 
+     * @returns {Boolean}
+     */
+    function isPatchable(vnode) {
+        while(vnode.componentInstance) {
+            vnode = vnode.componentInstance._vnode;
+        }
+        return isDef(vnode.tag);
+    }
+
+    function updateChildren(parentElm, oldCh, newCh, insertedVnodeQueue, removeOnly) {
+        let oldStartIdx = 0;
+        let newStartIdx = 0;
+        let oldEndIdx = oldCh.length - 1;        
+        let oldStartVnode = oldCh[0];
+        let oldEndVnode = oldCh[oldEndIdx];
+        let newEndIdx = newCh.length - 1;
+        let newStartVnode = newCh[0];
+        let newEndVnode = newCh[newEndIdx];
+        let oldKeyToIdx, idxInOld, vnodeToMove, refElm;
+
+        /**
+         * removeOnly只是<transition-group>使用的一个特殊标识
+         */
+        const canMove = !removeOnly
+        
+        while(oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
+            if(isUndef(oldStartVnode)) {
+
+            } else if(oldStartVnode, newStartVnode) {
+                patchVnode(oldStartVnode, newStartVnode, insertedVnodeQueue);
+                oldStartVnode = oldCh[++oldStartIdx];
+                newStartVnode = newCh[++newStartIdx];
+            }
+        }
+
+    }
+
+    function patchVnode(oldVnode, vnode, insertedVnodeQueue, removeOnly) {
+        if(oldVnode === vnode) {
+            return;
+        }
+        const elm = vnode.elm = oldVnode.elm;
+
+        const data = vnode.data;
+        const oldCh = oldVnode.children;
+        const ch = vnode.children;
+    
+        if(isUndef(vnode.text)) {
+            if(isDef(oldCh) && isDef(ch)) { 
+                if(oldCh !== ch ) {
+                    updateChildren(elm, oldCh, ch, insertedVnodeQueue, removeOnly)
+                }
+            }
+        } else if(oldVnode.text !== vnode.text) {
+            nodeOps.setTextContent(elm, vnode.text);
+        }
+
+    }
+
     return function patch(oldVnode, vnode, hydrating, removeOnly) {
         let isInitialPatch = false;
         const insertedVnodeQueue = [];
@@ -94,8 +180,9 @@ export function createPatchFunction(backend) {
             //暂无
         } else {
             const isRealElement = isDef(oldVnode.nodeType);
-            if (!isRealElement) {
-
+            if (!isRealElement && sameVnode(oldVnode, vnode)) {
+                //patch 已经存在的根节点
+                patchVnode(oldVnode, vnode, insertedVnodeQueue, removeOnly)
             } else {
                 if (isRealElement) {
                     //挂载一个真正的DOM节点
@@ -112,6 +199,7 @@ export function createPatchFunction(backend) {
                 createElm(vnode, insertedVnodeQueue, parentElm, nodeOps.nextSibling(oldElm));
 
                 if (isDef(parentElm)) {
+                    //移除原来的节点
                     removeVnodes(parentElm, [oldVnode], 0, 0);
                 } else {
 

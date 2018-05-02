@@ -21,7 +21,7 @@ export function proxy(target, sourceKey, key) {
         return this[sourceKey][key];
     }
     sharedPropertyDefinition.set = function proxySetter(val) {
-        this[sourcekey][key] = val;
+        this[sourceKey][key] = val;
     }
     Object.defineProperty(target, key, sharedPropertyDefinition);
 }
@@ -83,7 +83,7 @@ function initData(vm) {
  */
 export function getData(data, vm) {
     // #7573 disable dep collection when invoking data getters
-    // 调用data getters禁用dep collection
+    // 清理Dep.target
     pushTarget()
     try {
       return data.call(vm, vm)
@@ -127,7 +127,6 @@ export function defineComputed(target, key, userDef) {
         sharedPropertyDefinition.get = createComputedGetter(key);
         sharedPropertyDefinition.set = noop;
     }
-
     Object.defineProperty(target, key, sharedPropertyDefinition);
 }
 

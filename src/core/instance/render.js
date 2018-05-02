@@ -41,7 +41,8 @@ export function renderMixin(Vue) {
         const {render} = vm.$options
         let vnode;
         try {
-            //_renderProxy的值为vm本身
+            console.log('render 函数: ', render)
+            //_renderProxy的值为vm本身, 如果用户提供render函数,参数vm.$createElement
             vnode = render.call(vm._renderProxy, vm.$createElement);
         } catch(e) {
             console.error(e);

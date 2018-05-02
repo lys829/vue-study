@@ -79,6 +79,7 @@ export function observe(value, asRootData) {
  */
 export function defineReactive(obj, key, val, customSetter, shallow) {
     const dep = new Dep();
+    
     const property = Object.getOwnPropertyDescriptor(obj, key);
     if(property && property.configurable === false) {
         return;

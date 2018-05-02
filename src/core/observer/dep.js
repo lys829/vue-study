@@ -10,6 +10,7 @@ export default class Dep {
     }
 
     addSub(sub) {
+        console.log('add sub id: ', this.id, sub)
         this.subs.push(sub);
     }
 
@@ -19,6 +20,7 @@ export default class Dep {
 
     depend() {
         if(Dep.target) {
+            //watcher收集完成后,再调用addSub
             Dep.target.addDep(this);
         }
     }
@@ -26,6 +28,7 @@ export default class Dep {
     notify() {
         const subs = this.subs.slice();
         for(let i = 0, l = subs.length; i < l; i++) {
+            console.log('开始更新(subs)')
             subs[i].update();
         }
     }
@@ -39,6 +42,7 @@ const targetStack = []
  */
 export function pushTarget(_target) {
     if(Dep.target) {
+        console.log('已经存在 Dep.target', Dep.target)
         targetStack.push(Dep.target);
     }
     Dep.target = _target;

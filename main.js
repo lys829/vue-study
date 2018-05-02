@@ -7,7 +7,7 @@ const vm = new Vue({
     data: {
         a: 1
     },
-    template: '<div>{{a}}</div>',
+    template: '<div><span>{{a}}</span><p>{{b}}</p></div>',
     computed: {
         b: function () {
             const res = this.a + 2;
@@ -16,3 +16,10 @@ const vm = new Vue({
     }
 })
 
+// console.log('vm.b: ', vm.b)
+
+
+setTimeout(()=> {
+    vm.a = 6
+    console.log('computed b: ', vm.b);
+}, 2000)
