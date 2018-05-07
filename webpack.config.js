@@ -1,15 +1,17 @@
 const path = require('path')
+const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const resolve = p => path.resolve(__dirname, './', p)
+const cleanWebpackPlugin = require('clean-webpack-plugin');
 
 module.exports = {
     mode: 'development',
     entry: {main: resolve('main.js')},
     output: {
         path: resolve('dist'),
-        publicPath: 'http://localhost:8080/build',
+        publicPath: 'http://localhost:3001/build',
         filename: '[name].js',
-        chunkFilename: '[name].js'
+        chunkFilename: 'chunk.[name].js'
     },
     module: {
         rules: [{
@@ -36,8 +38,16 @@ module.exports = {
             sfc: resolve('src/sfc')
         }
     },
+    devServer: {
+        contentBase: './dist',
+        host: 'localhost',
+        port: 3001,
+        hot: true
+    },
     devtool: '#source-map',
     plugins: [
+        new cleanWebpackPlugin,
+        new webpack.HotModuleReplacementPlugin(),
         new HtmlWebpackPlugin({
             inject: true,
             filename: 'index.html',

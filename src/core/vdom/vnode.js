@@ -2,7 +2,7 @@
 export default class VNode {
     constructor(tag, data, children, text, elm, context, componentOptions, asyncFactory) {
         this.tag = tag;
-        this.data = data;
+        this.data = data; //data 属性包含了最后渲染成真实dom节点后，节点上的class,attribute,style以及绑定的事件
         this.children = children;
         this.text = text;
         this.elm = elm;

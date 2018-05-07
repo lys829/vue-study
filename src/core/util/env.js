@@ -12,6 +12,8 @@ export const isAndroid = (UA && UA.indexOf('android') > 0) || (weexPlatform === 
 export const isIOS = (UA && /iphone|ipad|ipod|ios/.test(UA)) || (weexPlatform === 'ios')
 export const isChrome = UA && /chrome\/\d+/.test(UA) && !isEdge
 
+// Firefox has a "watch" function on Object.prototype...
+export const nativeWatch = ({}).watch;
 
 export function isNative (Ctor) {
     return typeof Ctor === 'function' && /native code/.test(Ctor.toString())

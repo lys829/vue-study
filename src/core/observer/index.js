@@ -1,5 +1,6 @@
 
 import Dep from './dep'
+import VNode from '../vdom/vnode'
 
 import {
     def,
@@ -47,7 +48,7 @@ export class Observer {
 
 
 export function observe(value, asRootData) {
-    if(!isObject(value)) {
+    if(!isObject(value) || value instanceof VNode) {
         return;
     }
     let ob = null;
@@ -78,7 +79,7 @@ export function observe(value, asRootData) {
  * @param {Boolean} shallow？
  */
 export function defineReactive(obj, key, val, customSetter, shallow) {
-    const dep = new Dep();
+    const dep = new Dep(key);
     
     const property = Object.getOwnPropertyDescriptor(obj, key);
     if(property && property.configurable === false) {
@@ -92,12 +93,13 @@ export function defineReactive(obj, key, val, customSetter, shallow) {
         // Observe构造函数中的walk方法中调用defineReactive没有这个val参数
         val = obj[key];
     }
-
+    //TODO: 未知
     let childOb = !shallow && observe(val);
+    
     Object.defineProperty(obj, key, {
         enumerable: true,
         configurable: true,
-        get: function () {
+        get: function reactiveGetter() {
             const value = getter ? getter.call(obj) : val;
             if(Dep.target){ 
                 dep.depend();
@@ -108,7 +110,7 @@ export function defineReactive(obj, key, val, customSetter, shallow) {
             return value;
         },
 
-        set: function(newVal) {
+        set: function reactiveSetter(newVal) {
             const value = getter ? getter.call(obj) : val;
             if(newVal === value || (newVal !== newVal && value !== value)) {
                 return;
@@ -119,6 +121,7 @@ export function defineReactive(obj, key, val, customSetter, shallow) {
                 val = newVal;
             }
             childOb = !shallow && observe(newVal)
+            console.log('新的值为一个对象, childOb >>>>', childOb)
             dep.notify()
         }
     })

@@ -7,6 +7,8 @@ import { observe } from '../observer/index'
 import {
     noop,
     isReserved,
+    nativeWatch,
+    isPlainObject
 } from '../util/index'
 
 const sharedPropertyDefinition = {
@@ -14,7 +16,7 @@ const sharedPropertyDefinition = {
     configurable: true,
     get: noop,
     set: noop
-  }
+}
 
 export function proxy(target, sourceKey, key) {
     sharedPropertyDefinition.get = function proxyGetter() {
@@ -38,6 +40,19 @@ export function stateMixin(Vue) {
     }
     Object.defineProperty(Vue.prototype, '$data', dataDef);
     Object.defineProperty(Vue.prototype, '$props', dataDef);
+
+    Vue.prototype.$watch = function(expOrFn, cb, options={}) {
+        const vm = this;
+        options.user = true;
+        const watcher = new Watcher(vm, expOrFn, cb, options);
+        if(options.immediate) {
+            cb.call(vm, watcher.value);
+        }
+        //TODO:未知
+        return function unwatchFn() {
+            watcher.teardown();
+        }
+    }
 }
 
 
@@ -54,7 +69,9 @@ export function initState(vm) {
     if(opts.computed) {
         initComputed(vm, opts.computed);
     }
-    //TODO: watch
+    if(opts.watch && opts.watch !== nativeWatch) {
+        initWatch(vm, opts.watch);
+    }
 }
 
 function initData(vm) {
@@ -139,4 +156,24 @@ function createComputedGetter(key) {
             return watcher.evaluate();
         }
     }
+}
+
+function initWatch(vm, watch) {
+    for(let key in watch) {
+        const handler = watch[key];
+        if(Array.isArray(handler)) {
+
+        } else {
+            createWatcher(vm, key, handler);
+        }
+    }
+}
+
+function createWatcher(vm, expOrFn, handler, options) {
+    if(isPlainObject(handler)) {
+        options = handler;
+        handler = handler.handler;
+    }
+
+    return vm.$watch(expOrFn, handler, options)
 }

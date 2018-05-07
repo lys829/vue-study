@@ -9,6 +9,12 @@ let waiting = false;
 let flushing = false;
 let index = 0;
 
+function resetSchedulerState() {
+    index = queue.length = activatedChildren.length = 0;
+    has = {};
+    waiting = flushing = false;
+}
+
 function flushSchedulerQueue() {
     flushing = true;
     let watcher, id;
@@ -16,7 +22,6 @@ function flushSchedulerQueue() {
     queue.sort((a, b) => a.id - b.id);
     for(index = 0; index < queue.length; index++) {
         watcher = queue[index];
-        
         id = watcher.id;
         has[id] = null;
         watcher.run();
@@ -25,6 +30,8 @@ function flushSchedulerQueue() {
 
     const activatedQueue = activatedChildren.slice()
     const updatedQueue = queue.slice()
+
+    resetSchedulerState();
 }
 
 export function queueWatcher(watcher) {
@@ -41,7 +48,6 @@ export function queueWatcher(watcher) {
             queue.splice(i+1, 0, watcher);
         }
     }
-
     if(!waiting) {
         waiting = true;
         nextTick(flushSchedulerQueue)

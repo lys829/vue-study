@@ -4,13 +4,16 @@ import { remove } from '../util/index'
 let uid = 0;
 
 export default class Dep {
-    constructor() {
+    constructor(name) {
+        //临时加name,方便调试
+        this.name = name;
+        
         this.id = uid++;
         this.subs = [];
     }
 
     addSub(sub) {
-        console.log('add sub id: ', this.id, sub)
+        console.log(`dep(${this.name}) add sub id: ${this.id}`, sub)
         this.subs.push(sub);
     }
 
@@ -27,8 +30,8 @@ export default class Dep {
 
     notify() {
         const subs = this.subs.slice();
+        console.log('%c 开始更新, 监听者个数: '+subs.length, 'color: red')     
         for(let i = 0, l = subs.length; i < l; i++) {
-            console.log('开始更新(subs)')
             subs[i].update();
         }
     }

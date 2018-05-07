@@ -1,4 +1,691 @@
 /******/ (function(modules) { // webpackBootstrap
+/******/ 	function hotDisposeChunk(chunkId) {
+/******/ 		delete installedChunks[chunkId];
+/******/ 	}
+/******/ 	var parentHotUpdateCallback = window["webpackHotUpdate"];
+/******/ 	window["webpackHotUpdate"] = // eslint-disable-next-line no-unused-vars
+/******/ 	function webpackHotUpdateCallback(chunkId, moreModules) {
+/******/ 		hotAddUpdateChunk(chunkId, moreModules);
+/******/ 		if (parentHotUpdateCallback) parentHotUpdateCallback(chunkId, moreModules);
+/******/ 	} ;
+/******/
+/******/ 	// eslint-disable-next-line no-unused-vars
+/******/ 	function hotDownloadUpdateChunk(chunkId) {
+/******/ 		var head = document.getElementsByTagName("head")[0];
+/******/ 		var script = document.createElement("script");
+/******/ 		script.charset = "utf-8";
+/******/ 		script.src = __webpack_require__.p + "" + chunkId + "." + hotCurrentHash + ".hot-update.js";
+/******/ 		;
+/******/ 		head.appendChild(script);
+/******/ 	}
+/******/
+/******/ 	// eslint-disable-next-line no-unused-vars
+/******/ 	function hotDownloadManifest(requestTimeout) {
+/******/ 		requestTimeout = requestTimeout || 10000;
+/******/ 		return new Promise(function(resolve, reject) {
+/******/ 			if (typeof XMLHttpRequest === "undefined")
+/******/ 				return reject(new Error("No browser support"));
+/******/ 			try {
+/******/ 				var request = new XMLHttpRequest();
+/******/ 				var requestPath = __webpack_require__.p + "" + hotCurrentHash + ".hot-update.json";
+/******/ 				request.open("GET", requestPath, true);
+/******/ 				request.timeout = requestTimeout;
+/******/ 				request.send(null);
+/******/ 			} catch (err) {
+/******/ 				return reject(err);
+/******/ 			}
+/******/ 			request.onreadystatechange = function() {
+/******/ 				if (request.readyState !== 4) return;
+/******/ 				if (request.status === 0) {
+/******/ 					// timeout
+/******/ 					reject(
+/******/ 						new Error("Manifest request to " + requestPath + " timed out.")
+/******/ 					);
+/******/ 				} else if (request.status === 404) {
+/******/ 					// no update available
+/******/ 					resolve();
+/******/ 				} else if (request.status !== 200 && request.status !== 304) {
+/******/ 					// other failure
+/******/ 					reject(new Error("Manifest request to " + requestPath + " failed."));
+/******/ 				} else {
+/******/ 					// success
+/******/ 					try {
+/******/ 						var update = JSON.parse(request.responseText);
+/******/ 					} catch (e) {
+/******/ 						reject(e);
+/******/ 						return;
+/******/ 					}
+/******/ 					resolve(update);
+/******/ 				}
+/******/ 			};
+/******/ 		});
+/******/ 	}
+/******/
+/******/ 	var hotApplyOnUpdate = true;
+/******/ 	var hotCurrentHash = "b4696c72b44ad900a5e9"; // eslint-disable-line no-unused-vars
+/******/ 	var hotRequestTimeout = 10000;
+/******/ 	var hotCurrentModuleData = {};
+/******/ 	var hotCurrentChildModule; // eslint-disable-line no-unused-vars
+/******/ 	var hotCurrentParents = []; // eslint-disable-line no-unused-vars
+/******/ 	var hotCurrentParentsTemp = []; // eslint-disable-line no-unused-vars
+/******/
+/******/ 	// eslint-disable-next-line no-unused-vars
+/******/ 	function hotCreateRequire(moduleId) {
+/******/ 		var me = installedModules[moduleId];
+/******/ 		if (!me) return __webpack_require__;
+/******/ 		var fn = function(request) {
+/******/ 			if (me.hot.active) {
+/******/ 				if (installedModules[request]) {
+/******/ 					if (installedModules[request].parents.indexOf(moduleId) === -1)
+/******/ 						installedModules[request].parents.push(moduleId);
+/******/ 				} else {
+/******/ 					hotCurrentParents = [moduleId];
+/******/ 					hotCurrentChildModule = request;
+/******/ 				}
+/******/ 				if (me.children.indexOf(request) === -1) me.children.push(request);
+/******/ 			} else {
+/******/ 				console.warn(
+/******/ 					"[HMR] unexpected require(" +
+/******/ 						request +
+/******/ 						") from disposed module " +
+/******/ 						moduleId
+/******/ 				);
+/******/ 				hotCurrentParents = [];
+/******/ 			}
+/******/ 			return __webpack_require__(request);
+/******/ 		};
+/******/ 		var ObjectFactory = function ObjectFactory(name) {
+/******/ 			return {
+/******/ 				configurable: true,
+/******/ 				enumerable: true,
+/******/ 				get: function() {
+/******/ 					return __webpack_require__[name];
+/******/ 				},
+/******/ 				set: function(value) {
+/******/ 					__webpack_require__[name] = value;
+/******/ 				}
+/******/ 			};
+/******/ 		};
+/******/ 		for (var name in __webpack_require__) {
+/******/ 			if (
+/******/ 				Object.prototype.hasOwnProperty.call(__webpack_require__, name) &&
+/******/ 				name !== "e"
+/******/ 			) {
+/******/ 				Object.defineProperty(fn, name, ObjectFactory(name));
+/******/ 			}
+/******/ 		}
+/******/ 		fn.e = function(chunkId) {
+/******/ 			if (hotStatus === "ready") hotSetStatus("prepare");
+/******/ 			hotChunksLoading++;
+/******/ 			return __webpack_require__.e(chunkId).then(finishChunkLoading, function(err) {
+/******/ 				finishChunkLoading();
+/******/ 				throw err;
+/******/ 			});
+/******/
+/******/ 			function finishChunkLoading() {
+/******/ 				hotChunksLoading--;
+/******/ 				if (hotStatus === "prepare") {
+/******/ 					if (!hotWaitingFilesMap[chunkId]) {
+/******/ 						hotEnsureUpdateChunk(chunkId);
+/******/ 					}
+/******/ 					if (hotChunksLoading === 0 && hotWaitingFiles === 0) {
+/******/ 						hotUpdateDownloaded();
+/******/ 					}
+/******/ 				}
+/******/ 			}
+/******/ 		};
+/******/ 		return fn;
+/******/ 	}
+/******/
+/******/ 	// eslint-disable-next-line no-unused-vars
+/******/ 	function hotCreateModule(moduleId) {
+/******/ 		var hot = {
+/******/ 			// private stuff
+/******/ 			_acceptedDependencies: {},
+/******/ 			_declinedDependencies: {},
+/******/ 			_selfAccepted: false,
+/******/ 			_selfDeclined: false,
+/******/ 			_disposeHandlers: [],
+/******/ 			_main: hotCurrentChildModule !== moduleId,
+/******/
+/******/ 			// Module API
+/******/ 			active: true,
+/******/ 			accept: function(dep, callback) {
+/******/ 				if (typeof dep === "undefined") hot._selfAccepted = true;
+/******/ 				else if (typeof dep === "function") hot._selfAccepted = dep;
+/******/ 				else if (typeof dep === "object")
+/******/ 					for (var i = 0; i < dep.length; i++)
+/******/ 						hot._acceptedDependencies[dep[i]] = callback || function() {};
+/******/ 				else hot._acceptedDependencies[dep] = callback || function() {};
+/******/ 			},
+/******/ 			decline: function(dep) {
+/******/ 				if (typeof dep === "undefined") hot._selfDeclined = true;
+/******/ 				else if (typeof dep === "object")
+/******/ 					for (var i = 0; i < dep.length; i++)
+/******/ 						hot._declinedDependencies[dep[i]] = true;
+/******/ 				else hot._declinedDependencies[dep] = true;
+/******/ 			},
+/******/ 			dispose: function(callback) {
+/******/ 				hot._disposeHandlers.push(callback);
+/******/ 			},
+/******/ 			addDisposeHandler: function(callback) {
+/******/ 				hot._disposeHandlers.push(callback);
+/******/ 			},
+/******/ 			removeDisposeHandler: function(callback) {
+/******/ 				var idx = hot._disposeHandlers.indexOf(callback);
+/******/ 				if (idx >= 0) hot._disposeHandlers.splice(idx, 1);
+/******/ 			},
+/******/
+/******/ 			// Management API
+/******/ 			check: hotCheck,
+/******/ 			apply: hotApply,
+/******/ 			status: function(l) {
+/******/ 				if (!l) return hotStatus;
+/******/ 				hotStatusHandlers.push(l);
+/******/ 			},
+/******/ 			addStatusHandler: function(l) {
+/******/ 				hotStatusHandlers.push(l);
+/******/ 			},
+/******/ 			removeStatusHandler: function(l) {
+/******/ 				var idx = hotStatusHandlers.indexOf(l);
+/******/ 				if (idx >= 0) hotStatusHandlers.splice(idx, 1);
+/******/ 			},
+/******/
+/******/ 			//inherit from previous dispose call
+/******/ 			data: hotCurrentModuleData[moduleId]
+/******/ 		};
+/******/ 		hotCurrentChildModule = undefined;
+/******/ 		return hot;
+/******/ 	}
+/******/
+/******/ 	var hotStatusHandlers = [];
+/******/ 	var hotStatus = "idle";
+/******/
+/******/ 	function hotSetStatus(newStatus) {
+/******/ 		hotStatus = newStatus;
+/******/ 		for (var i = 0; i < hotStatusHandlers.length; i++)
+/******/ 			hotStatusHandlers[i].call(null, newStatus);
+/******/ 	}
+/******/
+/******/ 	// while downloading
+/******/ 	var hotWaitingFiles = 0;
+/******/ 	var hotChunksLoading = 0;
+/******/ 	var hotWaitingFilesMap = {};
+/******/ 	var hotRequestedFilesMap = {};
+/******/ 	var hotAvailableFilesMap = {};
+/******/ 	var hotDeferred;
+/******/
+/******/ 	// The update info
+/******/ 	var hotUpdate, hotUpdateNewHash;
+/******/
+/******/ 	function toModuleId(id) {
+/******/ 		var isNumber = +id + "" === id;
+/******/ 		return isNumber ? +id : id;
+/******/ 	}
+/******/
+/******/ 	function hotCheck(apply) {
+/******/ 		if (hotStatus !== "idle")
+/******/ 			throw new Error("check() is only allowed in idle status");
+/******/ 		hotApplyOnUpdate = apply;
+/******/ 		hotSetStatus("check");
+/******/ 		return hotDownloadManifest(hotRequestTimeout).then(function(update) {
+/******/ 			if (!update) {
+/******/ 				hotSetStatus("idle");
+/******/ 				return null;
+/******/ 			}
+/******/ 			hotRequestedFilesMap = {};
+/******/ 			hotWaitingFilesMap = {};
+/******/ 			hotAvailableFilesMap = update.c;
+/******/ 			hotUpdateNewHash = update.h;
+/******/
+/******/ 			hotSetStatus("prepare");
+/******/ 			var promise = new Promise(function(resolve, reject) {
+/******/ 				hotDeferred = {
+/******/ 					resolve: resolve,
+/******/ 					reject: reject
+/******/ 				};
+/******/ 			});
+/******/ 			hotUpdate = {};
+/******/ 			var chunkId = "main";
+/******/ 			{
+/******/ 				// eslint-disable-line no-lone-blocks
+/******/ 				/*globals chunkId */
+/******/ 				hotEnsureUpdateChunk(chunkId);
+/******/ 			}
+/******/ 			if (
+/******/ 				hotStatus === "prepare" &&
+/******/ 				hotChunksLoading === 0 &&
+/******/ 				hotWaitingFiles === 0
+/******/ 			) {
+/******/ 				hotUpdateDownloaded();
+/******/ 			}
+/******/ 			return promise;
+/******/ 		});
+/******/ 	}
+/******/
+/******/ 	// eslint-disable-next-line no-unused-vars
+/******/ 	function hotAddUpdateChunk(chunkId, moreModules) {
+/******/ 		if (!hotAvailableFilesMap[chunkId] || !hotRequestedFilesMap[chunkId])
+/******/ 			return;
+/******/ 		hotRequestedFilesMap[chunkId] = false;
+/******/ 		for (var moduleId in moreModules) {
+/******/ 			if (Object.prototype.hasOwnProperty.call(moreModules, moduleId)) {
+/******/ 				hotUpdate[moduleId] = moreModules[moduleId];
+/******/ 			}
+/******/ 		}
+/******/ 		if (--hotWaitingFiles === 0 && hotChunksLoading === 0) {
+/******/ 			hotUpdateDownloaded();
+/******/ 		}
+/******/ 	}
+/******/
+/******/ 	function hotEnsureUpdateChunk(chunkId) {
+/******/ 		if (!hotAvailableFilesMap[chunkId]) {
+/******/ 			hotWaitingFilesMap[chunkId] = true;
+/******/ 		} else {
+/******/ 			hotRequestedFilesMap[chunkId] = true;
+/******/ 			hotWaitingFiles++;
+/******/ 			hotDownloadUpdateChunk(chunkId);
+/******/ 		}
+/******/ 	}
+/******/
+/******/ 	function hotUpdateDownloaded() {
+/******/ 		hotSetStatus("ready");
+/******/ 		var deferred = hotDeferred;
+/******/ 		hotDeferred = null;
+/******/ 		if (!deferred) return;
+/******/ 		if (hotApplyOnUpdate) {
+/******/ 			// Wrap deferred object in Promise to mark it as a well-handled Promise to
+/******/ 			// avoid triggering uncaught exception warning in Chrome.
+/******/ 			// See https://bugs.chromium.org/p/chromium/issues/detail?id=465666
+/******/ 			Promise.resolve()
+/******/ 				.then(function() {
+/******/ 					return hotApply(hotApplyOnUpdate);
+/******/ 				})
+/******/ 				.then(
+/******/ 					function(result) {
+/******/ 						deferred.resolve(result);
+/******/ 					},
+/******/ 					function(err) {
+/******/ 						deferred.reject(err);
+/******/ 					}
+/******/ 				);
+/******/ 		} else {
+/******/ 			var outdatedModules = [];
+/******/ 			for (var id in hotUpdate) {
+/******/ 				if (Object.prototype.hasOwnProperty.call(hotUpdate, id)) {
+/******/ 					outdatedModules.push(toModuleId(id));
+/******/ 				}
+/******/ 			}
+/******/ 			deferred.resolve(outdatedModules);
+/******/ 		}
+/******/ 	}
+/******/
+/******/ 	function hotApply(options) {
+/******/ 		if (hotStatus !== "ready")
+/******/ 			throw new Error("apply() is only allowed in ready status");
+/******/ 		options = options || {};
+/******/
+/******/ 		var cb;
+/******/ 		var i;
+/******/ 		var j;
+/******/ 		var module;
+/******/ 		var moduleId;
+/******/
+/******/ 		function getAffectedStuff(updateModuleId) {
+/******/ 			var outdatedModules = [updateModuleId];
+/******/ 			var outdatedDependencies = {};
+/******/
+/******/ 			var queue = outdatedModules.slice().map(function(id) {
+/******/ 				return {
+/******/ 					chain: [id],
+/******/ 					id: id
+/******/ 				};
+/******/ 			});
+/******/ 			while (queue.length > 0) {
+/******/ 				var queueItem = queue.pop();
+/******/ 				var moduleId = queueItem.id;
+/******/ 				var chain = queueItem.chain;
+/******/ 				module = installedModules[moduleId];
+/******/ 				if (!module || module.hot._selfAccepted) continue;
+/******/ 				if (module.hot._selfDeclined) {
+/******/ 					return {
+/******/ 						type: "self-declined",
+/******/ 						chain: chain,
+/******/ 						moduleId: moduleId
+/******/ 					};
+/******/ 				}
+/******/ 				if (module.hot._main) {
+/******/ 					return {
+/******/ 						type: "unaccepted",
+/******/ 						chain: chain,
+/******/ 						moduleId: moduleId
+/******/ 					};
+/******/ 				}
+/******/ 				for (var i = 0; i < module.parents.length; i++) {
+/******/ 					var parentId = module.parents[i];
+/******/ 					var parent = installedModules[parentId];
+/******/ 					if (!parent) continue;
+/******/ 					if (parent.hot._declinedDependencies[moduleId]) {
+/******/ 						return {
+/******/ 							type: "declined",
+/******/ 							chain: chain.concat([parentId]),
+/******/ 							moduleId: moduleId,
+/******/ 							parentId: parentId
+/******/ 						};
+/******/ 					}
+/******/ 					if (outdatedModules.indexOf(parentId) !== -1) continue;
+/******/ 					if (parent.hot._acceptedDependencies[moduleId]) {
+/******/ 						if (!outdatedDependencies[parentId])
+/******/ 							outdatedDependencies[parentId] = [];
+/******/ 						addAllToSet(outdatedDependencies[parentId], [moduleId]);
+/******/ 						continue;
+/******/ 					}
+/******/ 					delete outdatedDependencies[parentId];
+/******/ 					outdatedModules.push(parentId);
+/******/ 					queue.push({
+/******/ 						chain: chain.concat([parentId]),
+/******/ 						id: parentId
+/******/ 					});
+/******/ 				}
+/******/ 			}
+/******/
+/******/ 			return {
+/******/ 				type: "accepted",
+/******/ 				moduleId: updateModuleId,
+/******/ 				outdatedModules: outdatedModules,
+/******/ 				outdatedDependencies: outdatedDependencies
+/******/ 			};
+/******/ 		}
+/******/
+/******/ 		function addAllToSet(a, b) {
+/******/ 			for (var i = 0; i < b.length; i++) {
+/******/ 				var item = b[i];
+/******/ 				if (a.indexOf(item) === -1) a.push(item);
+/******/ 			}
+/******/ 		}
+/******/
+/******/ 		// at begin all updates modules are outdated
+/******/ 		// the "outdated" status can propagate to parents if they don't accept the children
+/******/ 		var outdatedDependencies = {};
+/******/ 		var outdatedModules = [];
+/******/ 		var appliedUpdate = {};
+/******/
+/******/ 		var warnUnexpectedRequire = function warnUnexpectedRequire() {
+/******/ 			console.warn(
+/******/ 				"[HMR] unexpected require(" + result.moduleId + ") to disposed module"
+/******/ 			);
+/******/ 		};
+/******/
+/******/ 		for (var id in hotUpdate) {
+/******/ 			if (Object.prototype.hasOwnProperty.call(hotUpdate, id)) {
+/******/ 				moduleId = toModuleId(id);
+/******/ 				var result;
+/******/ 				if (hotUpdate[id]) {
+/******/ 					result = getAffectedStuff(moduleId);
+/******/ 				} else {
+/******/ 					result = {
+/******/ 						type: "disposed",
+/******/ 						moduleId: id
+/******/ 					};
+/******/ 				}
+/******/ 				var abortError = false;
+/******/ 				var doApply = false;
+/******/ 				var doDispose = false;
+/******/ 				var chainInfo = "";
+/******/ 				if (result.chain) {
+/******/ 					chainInfo = "\nUpdate propagation: " + result.chain.join(" -> ");
+/******/ 				}
+/******/ 				switch (result.type) {
+/******/ 					case "self-declined":
+/******/ 						if (options.onDeclined) options.onDeclined(result);
+/******/ 						if (!options.ignoreDeclined)
+/******/ 							abortError = new Error(
+/******/ 								"Aborted because of self decline: " +
+/******/ 									result.moduleId +
+/******/ 									chainInfo
+/******/ 							);
+/******/ 						break;
+/******/ 					case "declined":
+/******/ 						if (options.onDeclined) options.onDeclined(result);
+/******/ 						if (!options.ignoreDeclined)
+/******/ 							abortError = new Error(
+/******/ 								"Aborted because of declined dependency: " +
+/******/ 									result.moduleId +
+/******/ 									" in " +
+/******/ 									result.parentId +
+/******/ 									chainInfo
+/******/ 							);
+/******/ 						break;
+/******/ 					case "unaccepted":
+/******/ 						if (options.onUnaccepted) options.onUnaccepted(result);
+/******/ 						if (!options.ignoreUnaccepted)
+/******/ 							abortError = new Error(
+/******/ 								"Aborted because " + moduleId + " is not accepted" + chainInfo
+/******/ 							);
+/******/ 						break;
+/******/ 					case "accepted":
+/******/ 						if (options.onAccepted) options.onAccepted(result);
+/******/ 						doApply = true;
+/******/ 						break;
+/******/ 					case "disposed":
+/******/ 						if (options.onDisposed) options.onDisposed(result);
+/******/ 						doDispose = true;
+/******/ 						break;
+/******/ 					default:
+/******/ 						throw new Error("Unexception type " + result.type);
+/******/ 				}
+/******/ 				if (abortError) {
+/******/ 					hotSetStatus("abort");
+/******/ 					return Promise.reject(abortError);
+/******/ 				}
+/******/ 				if (doApply) {
+/******/ 					appliedUpdate[moduleId] = hotUpdate[moduleId];
+/******/ 					addAllToSet(outdatedModules, result.outdatedModules);
+/******/ 					for (moduleId in result.outdatedDependencies) {
+/******/ 						if (
+/******/ 							Object.prototype.hasOwnProperty.call(
+/******/ 								result.outdatedDependencies,
+/******/ 								moduleId
+/******/ 							)
+/******/ 						) {
+/******/ 							if (!outdatedDependencies[moduleId])
+/******/ 								outdatedDependencies[moduleId] = [];
+/******/ 							addAllToSet(
+/******/ 								outdatedDependencies[moduleId],
+/******/ 								result.outdatedDependencies[moduleId]
+/******/ 							);
+/******/ 						}
+/******/ 					}
+/******/ 				}
+/******/ 				if (doDispose) {
+/******/ 					addAllToSet(outdatedModules, [result.moduleId]);
+/******/ 					appliedUpdate[moduleId] = warnUnexpectedRequire;
+/******/ 				}
+/******/ 			}
+/******/ 		}
+/******/
+/******/ 		// Store self accepted outdated modules to require them later by the module system
+/******/ 		var outdatedSelfAcceptedModules = [];
+/******/ 		for (i = 0; i < outdatedModules.length; i++) {
+/******/ 			moduleId = outdatedModules[i];
+/******/ 			if (
+/******/ 				installedModules[moduleId] &&
+/******/ 				installedModules[moduleId].hot._selfAccepted
+/******/ 			)
+/******/ 				outdatedSelfAcceptedModules.push({
+/******/ 					module: moduleId,
+/******/ 					errorHandler: installedModules[moduleId].hot._selfAccepted
+/******/ 				});
+/******/ 		}
+/******/
+/******/ 		// Now in "dispose" phase
+/******/ 		hotSetStatus("dispose");
+/******/ 		Object.keys(hotAvailableFilesMap).forEach(function(chunkId) {
+/******/ 			if (hotAvailableFilesMap[chunkId] === false) {
+/******/ 				hotDisposeChunk(chunkId);
+/******/ 			}
+/******/ 		});
+/******/
+/******/ 		var idx;
+/******/ 		var queue = outdatedModules.slice();
+/******/ 		while (queue.length > 0) {
+/******/ 			moduleId = queue.pop();
+/******/ 			module = installedModules[moduleId];
+/******/ 			if (!module) continue;
+/******/
+/******/ 			var data = {};
+/******/
+/******/ 			// Call dispose handlers
+/******/ 			var disposeHandlers = module.hot._disposeHandlers;
+/******/ 			for (j = 0; j < disposeHandlers.length; j++) {
+/******/ 				cb = disposeHandlers[j];
+/******/ 				cb(data);
+/******/ 			}
+/******/ 			hotCurrentModuleData[moduleId] = data;
+/******/
+/******/ 			// disable module (this disables requires from this module)
+/******/ 			module.hot.active = false;
+/******/
+/******/ 			// remove module from cache
+/******/ 			delete installedModules[moduleId];
+/******/
+/******/ 			// when disposing there is no need to call dispose handler
+/******/ 			delete outdatedDependencies[moduleId];
+/******/
+/******/ 			// remove "parents" references from all children
+/******/ 			for (j = 0; j < module.children.length; j++) {
+/******/ 				var child = installedModules[module.children[j]];
+/******/ 				if (!child) continue;
+/******/ 				idx = child.parents.indexOf(moduleId);
+/******/ 				if (idx >= 0) {
+/******/ 					child.parents.splice(idx, 1);
+/******/ 				}
+/******/ 			}
+/******/ 		}
+/******/
+/******/ 		// remove outdated dependency from module children
+/******/ 		var dependency;
+/******/ 		var moduleOutdatedDependencies;
+/******/ 		for (moduleId in outdatedDependencies) {
+/******/ 			if (
+/******/ 				Object.prototype.hasOwnProperty.call(outdatedDependencies, moduleId)
+/******/ 			) {
+/******/ 				module = installedModules[moduleId];
+/******/ 				if (module) {
+/******/ 					moduleOutdatedDependencies = outdatedDependencies[moduleId];
+/******/ 					for (j = 0; j < moduleOutdatedDependencies.length; j++) {
+/******/ 						dependency = moduleOutdatedDependencies[j];
+/******/ 						idx = module.children.indexOf(dependency);
+/******/ 						if (idx >= 0) module.children.splice(idx, 1);
+/******/ 					}
+/******/ 				}
+/******/ 			}
+/******/ 		}
+/******/
+/******/ 		// Not in "apply" phase
+/******/ 		hotSetStatus("apply");
+/******/
+/******/ 		hotCurrentHash = hotUpdateNewHash;
+/******/
+/******/ 		// insert new code
+/******/ 		for (moduleId in appliedUpdate) {
+/******/ 			if (Object.prototype.hasOwnProperty.call(appliedUpdate, moduleId)) {
+/******/ 				modules[moduleId] = appliedUpdate[moduleId];
+/******/ 			}
+/******/ 		}
+/******/
+/******/ 		// call accept handlers
+/******/ 		var error = null;
+/******/ 		for (moduleId in outdatedDependencies) {
+/******/ 			if (
+/******/ 				Object.prototype.hasOwnProperty.call(outdatedDependencies, moduleId)
+/******/ 			) {
+/******/ 				module = installedModules[moduleId];
+/******/ 				if (module) {
+/******/ 					moduleOutdatedDependencies = outdatedDependencies[moduleId];
+/******/ 					var callbacks = [];
+/******/ 					for (i = 0; i < moduleOutdatedDependencies.length; i++) {
+/******/ 						dependency = moduleOutdatedDependencies[i];
+/******/ 						cb = module.hot._acceptedDependencies[dependency];
+/******/ 						if (cb) {
+/******/ 							if (callbacks.indexOf(cb) !== -1) continue;
+/******/ 							callbacks.push(cb);
+/******/ 						}
+/******/ 					}
+/******/ 					for (i = 0; i < callbacks.length; i++) {
+/******/ 						cb = callbacks[i];
+/******/ 						try {
+/******/ 							cb(moduleOutdatedDependencies);
+/******/ 						} catch (err) {
+/******/ 							if (options.onErrored) {
+/******/ 								options.onErrored({
+/******/ 									type: "accept-errored",
+/******/ 									moduleId: moduleId,
+/******/ 									dependencyId: moduleOutdatedDependencies[i],
+/******/ 									error: err
+/******/ 								});
+/******/ 							}
+/******/ 							if (!options.ignoreErrored) {
+/******/ 								if (!error) error = err;
+/******/ 							}
+/******/ 						}
+/******/ 					}
+/******/ 				}
+/******/ 			}
+/******/ 		}
+/******/
+/******/ 		// Load self accepted modules
+/******/ 		for (i = 0; i < outdatedSelfAcceptedModules.length; i++) {
+/******/ 			var item = outdatedSelfAcceptedModules[i];
+/******/ 			moduleId = item.module;
+/******/ 			hotCurrentParents = [moduleId];
+/******/ 			try {
+/******/ 				__webpack_require__(moduleId);
+/******/ 			} catch (err) {
+/******/ 				if (typeof item.errorHandler === "function") {
+/******/ 					try {
+/******/ 						item.errorHandler(err);
+/******/ 					} catch (err2) {
+/******/ 						if (options.onErrored) {
+/******/ 							options.onErrored({
+/******/ 								type: "self-accept-error-handler-errored",
+/******/ 								moduleId: moduleId,
+/******/ 								error: err2,
+/******/ 								originalError: err
+/******/ 							});
+/******/ 						}
+/******/ 						if (!options.ignoreErrored) {
+/******/ 							if (!error) error = err2;
+/******/ 						}
+/******/ 						if (!error) error = err;
+/******/ 					}
+/******/ 				} else {
+/******/ 					if (options.onErrored) {
+/******/ 						options.onErrored({
+/******/ 							type: "self-accept-errored",
+/******/ 							moduleId: moduleId,
+/******/ 							error: err
+/******/ 						});
+/******/ 					}
+/******/ 					if (!options.ignoreErrored) {
+/******/ 						if (!error) error = err;
+/******/ 					}
+/******/ 				}
+/******/ 			}
+/******/ 		}
+/******/
+/******/ 		// handle errors in accept handlers and self accepted module load
+/******/ 		if (error) {
+/******/ 			hotSetStatus("fail");
+/******/ 			return Promise.reject(error);
+/******/ 		}
+/******/
+/******/ 		hotSetStatus("idle");
+/******/ 		return new Promise(function(resolve) {
+/******/ 			resolve(outdatedModules);
+/******/ 		});
+/******/ 	}
+/******/
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
 /******/
@@ -13,11 +700,14 @@
 /******/ 		var module = installedModules[moduleId] = {
 /******/ 			i: moduleId,
 /******/ 			l: false,
-/******/ 			exports: {}
+/******/ 			exports: {},
+/******/ 			hot: hotCreateModule(moduleId),
+/******/ 			parents: (hotCurrentParentsTemp = hotCurrentParents, hotCurrentParents = [], hotCurrentParentsTemp),
+/******/ 			children: []
 /******/ 		};
 /******/
 /******/ 		// Execute the module function
-/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+/******/ 		modules[moduleId].call(module.exports, module, module.exports, hotCreateRequire(moduleId));
 /******/
 /******/ 		// Flag the module as loaded
 /******/ 		module.l = true;
@@ -62,14 +752,65 @@
 /******/ 	__webpack_require__.o = function(object, property) { return Object.prototype.hasOwnProperty.call(object, property); };
 /******/
 /******/ 	// __webpack_public_path__
-/******/ 	__webpack_require__.p = "http://localhost:8080/build";
+/******/ 	__webpack_require__.p = "http://localhost:3001/build";
+/******/
+/******/ 	// __webpack_hash__
+/******/ 	__webpack_require__.h = function() { return hotCurrentHash; };
 /******/
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = "./main.js");
+/******/ 	return hotCreateRequire("./main.js")(__webpack_require__.s = "./main.js");
 /******/ })
 /************************************************************************/
 /******/ ({
+
+/***/ "./examples/watcher.js":
+/*!*****************************!*\
+  !*** ./examples/watcher.js ***!
+  \*****************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return init; });
+/* harmony import */ var vue__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! vue */ "./src/platforms/web/entry-runtime-with-compiler.js");
+/* harmony import */ var vue__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(vue__WEBPACK_IMPORTED_MODULE_0__);
+
+
+function init(el) {
+    const vm = new vue__WEBPACK_IMPORTED_MODULE_0___default.a({
+        el: el,
+        data: {
+            a: 1
+        },
+        template: '<div><span>{{a}}</span><p>{{b}}</p></div>',
+        computed: {
+            b: function () {
+                const res = this.a + 2;
+                return res
+            }
+        },
+        watch: {
+            a: function(val, oldVal) {
+                console.log(`用户自定义watcher监听到改变 旧值:${oldVal} 新值: ${val}`);
+            }
+        }
+    })
+    
+    setTimeout(()=> {
+        vm.a = 6
+        console.log('computed b: ', vm.b);
+    }, 2000)
+}
+
+
+/**
+ * 属性a的dep包含三个监听器, render的watcher, 计算属性b的watcher, 用户自定义的属性a的watcher
+ * 属性b的dep包含render的watcher
+ */
+
+/***/ }),
 
 /***/ "./main.js":
 /*!*****************!*\
@@ -82,25 +823,27 @@
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _src_platforms_web_entry_runtime_with_compiler__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./src/platforms/web/entry-runtime-with-compiler */ "./src/platforms/web/entry-runtime-with-compiler.js");
 /* harmony import */ var _src_platforms_web_entry_runtime_with_compiler__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_src_platforms_web_entry_runtime_with_compiler__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _examples_watcher__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./examples/watcher */ "./examples/watcher.js");
+
+
+// import demo from './examples/simple.js'
+
+// import demo from './examples/updateVm'
 
 
 const appNode = document.getElementById('app');
+Object(_examples_watcher__WEBPACK_IMPORTED_MODULE_1__["default"])(appNode);
 
-const vm = new _src_platforms_web_entry_runtime_with_compiler__WEBPACK_IMPORTED_MODULE_0___default.a({
-    el: appNode,
-    data: {
-        a: 1
-    },
-    template: '<div>{{a}}</div>',
-    computed: {
-        b: function () {
-            const res = this.a + 2;
-            return res
-        }
-    }
-})
 
-console.log(vm.b)
+
+
+
+if(true) {
+    //热更新
+    module.hot.accept();
+}
+
+
 
 /***/ }),
 
@@ -444,6 +1187,471 @@ console.log(vm.b)
 }(this));
 
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../webpack/buildin/module.js */ "./node_modules/webpack/buildin/module.js")(module), __webpack_require__(/*! ./../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
+
+/***/ }),
+
+/***/ "./node_modules/process/browser.js":
+/*!*****************************************!*\
+  !*** ./node_modules/process/browser.js ***!
+  \*****************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// shim for using process in browser
+var process = module.exports = {};
+
+// cached from whatever global is present so that test runners that stub it
+// don't break things.  But we need to wrap it in a try catch in case it is
+// wrapped in strict mode code which doesn't define any globals.  It's inside a
+// function because try/catches deoptimize in certain engines.
+
+var cachedSetTimeout;
+var cachedClearTimeout;
+
+function defaultSetTimout() {
+    throw new Error('setTimeout has not been defined');
+}
+function defaultClearTimeout () {
+    throw new Error('clearTimeout has not been defined');
+}
+(function () {
+    try {
+        if (typeof setTimeout === 'function') {
+            cachedSetTimeout = setTimeout;
+        } else {
+            cachedSetTimeout = defaultSetTimout;
+        }
+    } catch (e) {
+        cachedSetTimeout = defaultSetTimout;
+    }
+    try {
+        if (typeof clearTimeout === 'function') {
+            cachedClearTimeout = clearTimeout;
+        } else {
+            cachedClearTimeout = defaultClearTimeout;
+        }
+    } catch (e) {
+        cachedClearTimeout = defaultClearTimeout;
+    }
+} ())
+function runTimeout(fun) {
+    if (cachedSetTimeout === setTimeout) {
+        //normal enviroments in sane situations
+        return setTimeout(fun, 0);
+    }
+    // if setTimeout wasn't available but was latter defined
+    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
+        cachedSetTimeout = setTimeout;
+        return setTimeout(fun, 0);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedSetTimeout(fun, 0);
+    } catch(e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
+            return cachedSetTimeout.call(null, fun, 0);
+        } catch(e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
+            return cachedSetTimeout.call(this, fun, 0);
+        }
+    }
+
+
+}
+function runClearTimeout(marker) {
+    if (cachedClearTimeout === clearTimeout) {
+        //normal enviroments in sane situations
+        return clearTimeout(marker);
+    }
+    // if clearTimeout wasn't available but was latter defined
+    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
+        cachedClearTimeout = clearTimeout;
+        return clearTimeout(marker);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedClearTimeout(marker);
+    } catch (e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
+            return cachedClearTimeout.call(null, marker);
+        } catch (e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
+            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
+            return cachedClearTimeout.call(this, marker);
+        }
+    }
+
+
+
+}
+var queue = [];
+var draining = false;
+var currentQueue;
+var queueIndex = -1;
+
+function cleanUpNextTick() {
+    if (!draining || !currentQueue) {
+        return;
+    }
+    draining = false;
+    if (currentQueue.length) {
+        queue = currentQueue.concat(queue);
+    } else {
+        queueIndex = -1;
+    }
+    if (queue.length) {
+        drainQueue();
+    }
+}
+
+function drainQueue() {
+    if (draining) {
+        return;
+    }
+    var timeout = runTimeout(cleanUpNextTick);
+    draining = true;
+
+    var len = queue.length;
+    while(len) {
+        currentQueue = queue;
+        queue = [];
+        while (++queueIndex < len) {
+            if (currentQueue) {
+                currentQueue[queueIndex].run();
+            }
+        }
+        queueIndex = -1;
+        len = queue.length;
+    }
+    currentQueue = null;
+    draining = false;
+    runClearTimeout(timeout);
+}
+
+process.nextTick = function (fun) {
+    var args = new Array(arguments.length - 1);
+    if (arguments.length > 1) {
+        for (var i = 1; i < arguments.length; i++) {
+            args[i - 1] = arguments[i];
+        }
+    }
+    queue.push(new Item(fun, args));
+    if (queue.length === 1 && !draining) {
+        runTimeout(drainQueue);
+    }
+};
+
+// v8 likes predictible objects
+function Item(fun, array) {
+    this.fun = fun;
+    this.array = array;
+}
+Item.prototype.run = function () {
+    this.fun.apply(null, this.array);
+};
+process.title = 'browser';
+process.browser = true;
+process.env = {};
+process.argv = [];
+process.version = ''; // empty string to avoid regexp issues
+process.versions = {};
+
+function noop() {}
+
+process.on = noop;
+process.addListener = noop;
+process.once = noop;
+process.off = noop;
+process.removeListener = noop;
+process.removeAllListeners = noop;
+process.emit = noop;
+process.prependListener = noop;
+process.prependOnceListener = noop;
+
+process.listeners = function (name) { return [] }
+
+process.binding = function (name) {
+    throw new Error('process.binding is not supported');
+};
+
+process.cwd = function () { return '/' };
+process.chdir = function (dir) {
+    throw new Error('process.chdir is not supported');
+};
+process.umask = function() { return 0; };
+
+
+/***/ }),
+
+/***/ "./node_modules/setimmediate/setImmediate.js":
+/*!***************************************************!*\
+  !*** ./node_modules/setimmediate/setImmediate.js ***!
+  \***************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+/* WEBPACK VAR INJECTION */(function(global, process) {(function (global, undefined) {
+    "use strict";
+
+    if (global.setImmediate) {
+        return;
+    }
+
+    var nextHandle = 1; // Spec says greater than zero
+    var tasksByHandle = {};
+    var currentlyRunningATask = false;
+    var doc = global.document;
+    var registerImmediate;
+
+    function setImmediate(callback) {
+      // Callback can either be a function or a string
+      if (typeof callback !== "function") {
+        callback = new Function("" + callback);
+      }
+      // Copy function arguments
+      var args = new Array(arguments.length - 1);
+      for (var i = 0; i < args.length; i++) {
+          args[i] = arguments[i + 1];
+      }
+      // Store and register the task
+      var task = { callback: callback, args: args };
+      tasksByHandle[nextHandle] = task;
+      registerImmediate(nextHandle);
+      return nextHandle++;
+    }
+
+    function clearImmediate(handle) {
+        delete tasksByHandle[handle];
+    }
+
+    function run(task) {
+        var callback = task.callback;
+        var args = task.args;
+        switch (args.length) {
+        case 0:
+            callback();
+            break;
+        case 1:
+            callback(args[0]);
+            break;
+        case 2:
+            callback(args[0], args[1]);
+            break;
+        case 3:
+            callback(args[0], args[1], args[2]);
+            break;
+        default:
+            callback.apply(undefined, args);
+            break;
+        }
+    }
+
+    function runIfPresent(handle) {
+        // From the spec: "Wait until any invocations of this algorithm started before this one have completed."
+        // So if we're currently running a task, we'll need to delay this invocation.
+        if (currentlyRunningATask) {
+            // Delay by doing a setTimeout. setImmediate was tried instead, but in Firefox 7 it generated a
+            // "too much recursion" error.
+            setTimeout(runIfPresent, 0, handle);
+        } else {
+            var task = tasksByHandle[handle];
+            if (task) {
+                currentlyRunningATask = true;
+                try {
+                    run(task);
+                } finally {
+                    clearImmediate(handle);
+                    currentlyRunningATask = false;
+                }
+            }
+        }
+    }
+
+    function installNextTickImplementation() {
+        registerImmediate = function(handle) {
+            process.nextTick(function () { runIfPresent(handle); });
+        };
+    }
+
+    function canUsePostMessage() {
+        // The test against `importScripts` prevents this implementation from being installed inside a web worker,
+        // where `global.postMessage` means something completely different and can't be used for this purpose.
+        if (global.postMessage && !global.importScripts) {
+            var postMessageIsAsynchronous = true;
+            var oldOnMessage = global.onmessage;
+            global.onmessage = function() {
+                postMessageIsAsynchronous = false;
+            };
+            global.postMessage("", "*");
+            global.onmessage = oldOnMessage;
+            return postMessageIsAsynchronous;
+        }
+    }
+
+    function installPostMessageImplementation() {
+        // Installs an event handler on `global` for the `message` event: see
+        // * https://developer.mozilla.org/en/DOM/window.postMessage
+        // * http://www.whatwg.org/specs/web-apps/current-work/multipage/comms.html#crossDocumentMessages
+
+        var messagePrefix = "setImmediate$" + Math.random() + "$";
+        var onGlobalMessage = function(event) {
+            if (event.source === global &&
+                typeof event.data === "string" &&
+                event.data.indexOf(messagePrefix) === 0) {
+                runIfPresent(+event.data.slice(messagePrefix.length));
+            }
+        };
+
+        if (global.addEventListener) {
+            global.addEventListener("message", onGlobalMessage, false);
+        } else {
+            global.attachEvent("onmessage", onGlobalMessage);
+        }
+
+        registerImmediate = function(handle) {
+            global.postMessage(messagePrefix + handle, "*");
+        };
+    }
+
+    function installMessageChannelImplementation() {
+        var channel = new MessageChannel();
+        channel.port1.onmessage = function(event) {
+            var handle = event.data;
+            runIfPresent(handle);
+        };
+
+        registerImmediate = function(handle) {
+            channel.port2.postMessage(handle);
+        };
+    }
+
+    function installReadyStateChangeImplementation() {
+        var html = doc.documentElement;
+        registerImmediate = function(handle) {
+            // Create a <script> element; its readystatechange event will be fired asynchronously once it is inserted
+            // into the document. Do so, thus queuing up the task. Remember to clean up once it's been called.
+            var script = doc.createElement("script");
+            script.onreadystatechange = function () {
+                runIfPresent(handle);
+                script.onreadystatechange = null;
+                html.removeChild(script);
+                script = null;
+            };
+            html.appendChild(script);
+        };
+    }
+
+    function installSetTimeoutImplementation() {
+        registerImmediate = function(handle) {
+            setTimeout(runIfPresent, 0, handle);
+        };
+    }
+
+    // If supported, we should attach to the prototype of global, since that is where setTimeout et al. live.
+    var attachTo = Object.getPrototypeOf && Object.getPrototypeOf(global);
+    attachTo = attachTo && attachTo.setTimeout ? attachTo : global;
+
+    // Don't get fooled by e.g. browserify environments.
+    if ({}.toString.call(global.process) === "[object process]") {
+        // For Node.js before 0.9
+        installNextTickImplementation();
+
+    } else if (canUsePostMessage()) {
+        // For non-IE10 modern browsers
+        installPostMessageImplementation();
+
+    } else if (global.MessageChannel) {
+        // For web workers, where supported
+        installMessageChannelImplementation();
+
+    } else if (doc && "onreadystatechange" in doc.createElement("script")) {
+        // For IE 6–8
+        installReadyStateChangeImplementation();
+
+    } else {
+        // For older browsers
+        installSetTimeoutImplementation();
+    }
+
+    attachTo.setImmediate = setImmediate;
+    attachTo.clearImmediate = clearImmediate;
+}(typeof self === "undefined" ? typeof global === "undefined" ? this : global : self));
+
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js"), __webpack_require__(/*! ./../process/browser.js */ "./node_modules/process/browser.js")))
+
+/***/ }),
+
+/***/ "./node_modules/timers-browserify/main.js":
+/*!************************************************!*\
+  !*** ./node_modules/timers-browserify/main.js ***!
+  \************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+/* WEBPACK VAR INJECTION */(function(global) {var apply = Function.prototype.apply;
+
+// DOM APIs, for completeness
+
+exports.setTimeout = function() {
+  return new Timeout(apply.call(setTimeout, window, arguments), clearTimeout);
+};
+exports.setInterval = function() {
+  return new Timeout(apply.call(setInterval, window, arguments), clearInterval);
+};
+exports.clearTimeout =
+exports.clearInterval = function(timeout) {
+  if (timeout) {
+    timeout.close();
+  }
+};
+
+function Timeout(id, clearFn) {
+  this._id = id;
+  this._clearFn = clearFn;
+}
+Timeout.prototype.unref = Timeout.prototype.ref = function() {};
+Timeout.prototype.close = function() {
+  this._clearFn.call(window, this._id);
+};
+
+// Does not start the time, just sets up the members needed.
+exports.enroll = function(item, msecs) {
+  clearTimeout(item._idleTimeoutId);
+  item._idleTimeout = msecs;
+};
+
+exports.unenroll = function(item) {
+  clearTimeout(item._idleTimeoutId);
+  item._idleTimeout = -1;
+};
+
+exports._unrefActive = exports.active = function(item) {
+  clearTimeout(item._idleTimeoutId);
+
+  var msecs = item._idleTimeout;
+  if (msecs >= 0) {
+    item._idleTimeoutId = setTimeout(function onTimeout() {
+      if (item._onTimeout)
+        item._onTimeout();
+    }, msecs);
+  }
+};
+
+// setimmediate attaches itself to the global object
+__webpack_require__(/*! setimmediate */ "./node_modules/setimmediate/setImmediate.js");
+// On some exotic environments, it's not clear which object `setimmeidate` was
+// able to install onto.  Search each possibility in the same order as the
+// `setimmediate` library.
+exports.setImmediate = (typeof self !== "undefined" && self.setImmediate) ||
+                       (typeof global !== "undefined" && global.setImmediate) ||
+                       (this && this.setImmediate);
+exports.clearImmediate = (typeof self !== "undefined" && self.clearImmediate) ||
+                         (typeof global !== "undefined" && global.clearImmediate) ||
+                         (this && this.clearImmediate);
+
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -3496,22 +4704,23 @@ function mountComponent(vm, el, hydrating) {
     vm.$el = el;
 
     if (!vm.$options.render) {
-        vm.$options.render = _vnode.createEmptyVNode;
+        vm.$options.render = (0, _vnode.createEmptyVNode)();
     }
 
     //TODO: beforeMount钩子
-    var updateComponent = void 0;
 
-    updateComponent = function updateComponent() {
+    var updateComponent = function updateComponent() {
+        // vm._render()通过render函数得到一个vnode, vm.update会在将template转化为node节点并绑定到vm.$el
         vm._update(vm._render(), hydrating);
     };
 
     // isRenderWatcher 参数会在Watcher构造函数中将watcher实例绑定到vm的_watcher属性上
     // watcher的初始化补丁会调用$forceUpdate(e.g 子组件的mounted钩子函数), 这依赖于vm._watcher
-    new _watcher2.default(vm, updateComponent, _index.noop, {}, true); // true: isRenderWatcher
+    new _watcher2.default(vm, updateComponent, _index.noop, {}, true); // true >> isRenderWatcher
     hydrating = false;
 
-    if (vm.$node == null) {
+    if (vm.$vnode == null) {
+        //编辑已经挂载节点完成,这里会触发mouted钩子
         vm._isMounted = true;
     }
 
@@ -3543,16 +4752,19 @@ function lifecycleMixin(Vue) {
     Vue.prototype._update = function (vnode, hydrating) {
         var vm = this;
         var prevEl = vm.$el;
-        var prevVnode = vm._node;
+        var prevVnode = vm._vnode;
         var prevActiveInstance = activeInstance;
 
         exports.activeInstance = activeInstance = vm;
         vm._vnode = vnode;
 
         if (!prevVnode) {
-            //初始化渲染
+            //初始化渲染 替换$el
             vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false); //false >> removeOnly
-        } else {}
+        } else {
+            //用于更新变更
+            vm.$el = vm.__patch__(prevVnode, vnode);
+        }
         exports.activeInstance = activeInstance = prevActiveInstance;
 
         if (prevEl) {
@@ -3657,10 +4869,13 @@ function renderMixin(Vue) {
     Vue.prototype.$nextTick = function (fn) {};
     Vue.prototype._render = function () {
         var vm = this;
+        //render在web平台入口文件(web/entry-runtime-with-compiler.js)中定义
         var render = vm.$options.render;
 
         var vnode = void 0;
         try {
+            console.log('render 函数: ', render);
+            //_renderProxy的值为vm本身, 如果用户提供render函数,参数vm.$createElement
             vnode = render.call(vm._renderProxy, vm.$createElement);
         } catch (e) {
             console.error(e);
@@ -3671,7 +4886,6 @@ function renderMixin(Vue) {
         }
 
         //set parent
-
         return vnode;
     };
 }
@@ -3721,7 +4935,7 @@ function proxy(target, sourceKey, key) {
         return this[sourceKey][key];
     };
     sharedPropertyDefinition.set = function proxySetter(val) {
-        this[sourcekey][key] = val;
+        this[sourceKey][key] = val;
     };
     Object.defineProperty(target, key, sharedPropertyDefinition);
 }
@@ -3738,6 +4952,21 @@ function stateMixin(Vue) {
     };
     Object.defineProperty(Vue.prototype, '$data', dataDef);
     Object.defineProperty(Vue.prototype, '$props', dataDef);
+
+    Vue.prototype.$watch = function (expOrFn, cb) {
+        var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+
+        var vm = this;
+        options.user = true;
+        var watcher = new _watcher2.default(vm, expOrFn, cb, options);
+        if (options.immediate) {
+            cb.call(vm, watcher.value);
+        }
+        //TODO:未知
+        return function unwatchFn() {
+            watcher.teardown();
+        };
+    };
 }
 
 function initState(vm) {
@@ -3753,7 +4982,9 @@ function initState(vm) {
     if (opts.computed) {
         initComputed(vm, opts.computed);
     }
-    //TODO: watch
+    if (opts.watch && opts.watch !== _index2.nativeWatch) {
+        initWatch(vm, opts.watch);
+    }
 }
 
 function initData(vm) {
@@ -3782,7 +5013,7 @@ function initData(vm) {
  */
 function getData(data, vm) {
     // #7573 disable dep collection when invoking data getters
-    // 调用data getters禁用dep collection
+    // 清理Dep.target
     (0, _dep.pushTarget)();
     try {
         return data.call(vm, vm);
@@ -3825,7 +5056,6 @@ function defineComputed(target, key, userDef) {
         sharedPropertyDefinition.get = createComputedGetter(key);
         sharedPropertyDefinition.set = _index2.noop;
     }
-
     Object.defineProperty(target, key, sharedPropertyDefinition);
 }
 
@@ -3837,6 +5067,24 @@ function createComputedGetter(key) {
             return watcher.evaluate();
         }
     };
+}
+
+function initWatch(vm, watch) {
+    for (var key in watch) {
+        var handler = watch[key];
+        if (Array.isArray(handler)) {} else {
+            createWatcher(vm, key, handler);
+        }
+    }
+}
+
+function createWatcher(vm, expOrFn, handler, options) {
+    if ((0, _index2.isPlainObject)(handler)) {
+        options = handler;
+        handler = handler.handler;
+    }
+
+    return vm.$watch(expOrFn, handler, options);
 }
 
 /***/ }),
@@ -3883,6 +5131,7 @@ var Dep = function () {
     _createClass(Dep, [{
         key: 'addSub',
         value: function addSub(sub) {
+            console.log('add sub id: ', this.id, sub);
             this.subs.push(sub);
         }
     }, {
@@ -3894,6 +5143,7 @@ var Dep = function () {
         key: 'depend',
         value: function depend() {
             if (Dep.target) {
+                //watcher收集完成后,再调用addSub
                 Dep.target.addDep(this);
             }
         }
@@ -3901,6 +5151,7 @@ var Dep = function () {
         key: 'notify',
         value: function notify() {
             var subs = this.subs.slice();
+            console.log('%c 开始更新, 监听者个数: ' + subs.length, 'color: red');
             for (var i = 0, l = subs.length; i < l; i++) {
                 subs[i].update();
             }
@@ -3916,8 +5167,12 @@ exports.default = Dep;
 Dep.target = null;
 var targetStack = [];
 
+/**
+ * @param {Watcher} _target?
+ */
 function pushTarget(_target) {
     if (Dep.target) {
+        console.log('已经存在 Dep.target', Dep.target);
         targetStack.push(Dep.target);
     }
     Dep.target = _target;
@@ -3974,6 +5229,7 @@ var Observer = exports.Observer = function () {
         this.value = value;
         this.dep = new _dep2.default();
         this.vmCount = 0;
+        //将Observer实例绑定到data到__ob__,在observer函数中会检测data对象是否包含Observer实例
         (0, _index.def)(value, '__ob__', this);
         if (Array.isArray(value)) {
             console.log('no');
@@ -4007,6 +5263,7 @@ function observe(value, asRootData) {
     }
 
     if (asRootData && ob) {
+        //对与observe的根数据计数
         ob.vmCount++;
     }
     return ob;
@@ -4022,7 +5279,8 @@ function observe(value, asRootData) {
  */
 function defineReactive(obj, key, val, customSetter, shallow) {
     var dep = new _dep2.default();
-    var property = Object.getOwnPropertyDescriptor(obj, val);
+
+    var property = Object.getOwnPropertyDescriptor(obj, key);
     if (property && property.configurable === false) {
         return;
     }
@@ -4030,9 +5288,8 @@ function defineReactive(obj, key, val, customSetter, shallow) {
     // 考虑之前定义的getter与setter
     var getter = property && property.get;
     var setter = property && property.set;
-
     if ((!getter || setter) && arguments.length === 2) {
-        // NOTE: 这里触发了一次求值
+        // Observe构造函数中的walk方法中调用defineReactive没有这个val参数
         val = obj[key];
     }
 
@@ -4067,6 +5324,80 @@ function defineReactive(obj, key, val, customSetter, shallow) {
 
 /***/ }),
 
+/***/ "./src/core/observer/scheduler.js":
+/*!****************************************!*\
+  !*** ./src/core/observer/scheduler.js ***!
+  \****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.queueWatcher = queueWatcher;
+
+var _index = __webpack_require__(/*! ../util/index */ "./src/core/util/index.js");
+
+var queue = [];
+var activatedChildren = [];
+var has = {};
+var waiting = false;
+var flushing = false;
+var index = 0;
+
+function resetSchedulerState() {
+    index = queue.length = activatedChildren.length = 0;
+    has = {};
+    waiting = flushing = false;
+}
+
+function flushSchedulerQueue() {
+    flushing = true;
+    var watcher = void 0,
+        id = void 0;
+
+    queue.sort(function (a, b) {
+        return a.id - b.id;
+    });
+    for (index = 0; index < queue.length; index++) {
+        watcher = queue[index];
+        id = watcher.id;
+        has[id] = null;
+        watcher.run();
+    }
+
+    var activatedQueue = activatedChildren.slice();
+    var updatedQueue = queue.slice();
+
+    resetSchedulerState();
+}
+
+function queueWatcher(watcher) {
+    var id = watcher.id;
+    if (has[id] == null) {
+        //没有被flush的watcher
+        has[id] = true;
+        if (!flushing) {
+            queue.push(watcher);
+        } else {
+            var i = queue.length - 1;
+            while (i > index && queue[i].id > watcher.id) {
+                i--;
+            }
+            queue.splice(i + 1, 0, watcher);
+        }
+    }
+    if (!waiting) {
+        waiting = true;
+        (0, _index.nextTick)(flushSchedulerQueue);
+    }
+}
+
+/***/ }),
+
 /***/ "./src/core/observer/watcher.js":
 /*!**************************************!*\
   !*** ./src/core/observer/watcher.js ***!
@@ -4085,6 +5416,8 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 var _index = __webpack_require__(/*! ../util/index */ "./src/core/util/index.js");
 
+var _scheduler = __webpack_require__(/*! ./scheduler */ "./src/core/observer/scheduler.js");
+
 var _dep = __webpack_require__(/*! ./dep */ "./src/core/observer/dep.js");
 
 var _dep2 = _interopRequireDefault(_dep);
@@ -4095,27 +5428,30 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 var uid = 0;
 
-var watch = function () {
-    function watch(vm, expOrFn, cb, options, isRenderWatcher) {
-        _classCallCheck(this, watch);
+var Watch = function () {
+    function Watch(vm, expOrFn, cb, options, isRenderWatcher) {
+        _classCallCheck(this, Watch);
 
         this.vm = vm;
         if (isRenderWatcher) {
-            // 判断这是render中绑定的watcher
+            // 如果是是挂载节点是绑定的watcher,则将该watcher绑定到vm的_watcher属性上
             vm._watcher = this;
         }
-
+        //收集watcher
         vm._watchers.push(this);
         if (options) {
             this.computed = !!options.computed;
+            this.user = !!options.user;
+        } else {
+            this.deep = this.user = this.computed = this.sync = false;
         }
 
         //TODO: 完善
-
         this.cb = cb;
         this.id = ++uid;
         this.active = true;
-        this.dirty = this.computed; //针对计算属性的watchers
+        //针对计算属性的watcher,如果为false，直接返回this.value,避免再次调用this.get()
+        this.dirty = this.computed;
         this.deps = [];
         this.newDeps = [];
         this.depIds = new Set();
@@ -4124,17 +5460,30 @@ var watch = function () {
 
         if (typeof expOrFn === 'function') {
             this.getter = expOrFn;
-        } else {}
+        } else {
+            // watch属性监听
+            this.getter = (0, _index.parsePath)(expOrFn);
+        }
 
         if (this.computed) {
             this.value = undefined;
             this.dep = new _dep2.default();
         } else {
+            /**
+             * 1. 赋值value
+             * 2. watcher添加到依赖对象的subs列表
+             */
             this.value = this.get();
         }
     }
 
-    _createClass(watch, [{
+    /**
+     * 1.computed第一次求值和依赖的值改变时触发
+     * 2.data 两种情况: 初始化时触发, 改变data的属性时触发
+     */
+
+
+    _createClass(Watch, [{
         key: 'get',
         value: function get() {
             (0, _dep.pushTarget)(this);
@@ -4146,6 +5495,7 @@ var watch = function () {
                 console.error(e);
             } finally {
                 (0, _dep.popTarget)();
+                this.cleanupDeps();
             }
             return value;
         }
@@ -4189,7 +5539,72 @@ var watch = function () {
         }
     }, {
         key: 'update',
-        value: function update() {}
+        value: function update() {
+            var _this = this;
+
+            if (this.computed) {
+                // 计算属性有两种模式: lazy和activated
+                // 初始化默认是lazy,当只是一个订阅者依赖时才会被激活,这个订阅者通常是另一个计算属性或组件的render函数中
+                if (this.dep.subs.length === 0) {
+                    // 在lazy模式下, 通过dirty来实现只要在必要的时候才重新计算值
+                    //当访问计算属性时, 是通过this.evaluate()方法来计算
+
+                    // 当依赖属性改变时,设置this.dirty为true,下次访问computed属性时,会重新计算
+                    this.dirty = true;
+                } else {
+                    // activated模式下, 会主动计算, 当然只会在值发生了真正改变的时候才通知订阅者
+                    this.getAndInvoke(function () {
+                        // TODO: 暂不知作用
+                        _this.dep.notify();
+                    });
+                }
+            } else {
+                console.log('加入任务队列');
+                (0, _scheduler.queueWatcher)(this);
+            }
+        }
+
+        // 调度任务中用到的接口
+
+    }, {
+        key: 'run',
+        value: function run() {
+            if (this.active) {
+                console.log('%c 从任务队列里面调用', 'color: green');
+                this.getAndInvoke(this.cb);
+            }
+        }
+    }, {
+        key: 'getAndInvoke',
+        value: function getAndInvoke(cb) {
+            var value = this.get();
+            console.log('running watcher value >>', this.computed, value, this.value);
+            /**
+             * 1. 当computed属性(b)依赖的值(a)改变时, 再次求值时, 会触发条件value !== this.value
+             */
+            if (value !== this.value || (0, _index.isObject)(value) || this.deep) {
+                //this.deep暂不考虑
+                //设置新的值
+                var oldValue = this.value;
+                this.value = value;
+                this.dirty = false;
+
+                if (this.user) {
+                    try {
+                        cb.call(this.vm, value, oldValue);
+                    } catch (e) {
+                        //TODO:error处理
+                    }
+                } else {
+                    cb.call(this.vm, value, oldValue);
+                }
+            }
+        }
+
+        /**
+         * 此求值方法值针对计算属性
+         */
+
     }, {
         key: 'evaluate',
         value: function evaluate() {
@@ -4199,6 +5614,12 @@ var watch = function () {
             }
             return this.value;
         }
+
+        /**
+         * 此方法值针对计算属性 
+         * 
+         */
+
     }, {
         key: 'depend',
         value: function depend() {
@@ -4206,12 +5627,30 @@ var watch = function () {
                 this.dep.depend();
             }
         }
+
+        /**
+         * 移除依赖对象的订阅列表
+         */
+
+    }, {
+        key: 'teardown',
+        value: function teardown() {
+            if (this.active) {
+                //TODO: destroyed
+
+                var i = this.deps.length;
+                while (i--) {
+                    this.deps[i].removeSub(this);
+                }
+                this.active = false;
+            }
+        }
     }]);
 
-    return watch;
+    return Watch;
 }();
 
-exports.default = watch;
+exports.default = Watch;
 
 /***/ }),
 
@@ -4334,8 +5773,9 @@ if (true) {
 
 
 Object.defineProperty(exports, "__esModule", {
-  value: true
+    value: true
 });
+exports.isNative = isNative;
 var hasProto = exports.hasProto = '__proto__' in {};
 
 var inBrowser = exports.inBrowser = typeof window !== 'undefined';
@@ -4348,6 +5788,13 @@ var isEdge = exports.isEdge = UA && UA.indexOf('edge/') > 0;
 var isAndroid = exports.isAndroid = UA && UA.indexOf('android') > 0 || weexPlatform === 'android';
 var isIOS = exports.isIOS = UA && /iphone|ipad|ipod|ios/.test(UA) || weexPlatform === 'ios';
 var isChrome = exports.isChrome = UA && /chrome\/\d+/.test(UA) && !isEdge;
+
+// Firefox has a "watch" function on Object.prototype...
+var nativeWatch = exports.nativeWatch = {}.watch;
+
+function isNative(Ctor) {
+    return typeof Ctor === 'function' && /native code/.test(Ctor.toString());
+}
 
 /***/ }),
 
@@ -4413,6 +5860,18 @@ Object.keys(_env).forEach(function (key) {
   });
 });
 
+var _nextTick = __webpack_require__(/*! ./next-tick */ "./src/core/util/next-tick.js");
+
+Object.keys(_nextTick).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _nextTick[key];
+    }
+  });
+});
+
 /***/ }),
 
 /***/ "./src/core/util/lang.js":
@@ -4474,6 +5933,143 @@ function parsePath(path) {
         return obj;
     };
 }
+
+/***/ }),
+
+/***/ "./src/core/util/next-tick.js":
+/*!************************************!*\
+  !*** ./src/core/util/next-tick.js ***!
+  \************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(setImmediate) {
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.withMacroTask = withMacroTask;
+exports.nextTick = nextTick;
+
+var _util = __webpack_require__(/*! shared/util */ "./src/shared/util.js");
+
+var _env = __webpack_require__(/*! ./env */ "./src/core/util/env.js");
+
+/* globals MessageChannel */
+
+var callbacks = [];
+// import { handleError } from './error'
+
+var pending = false;
+
+function flushCallbacks() {
+  pending = false;
+  var copies = callbacks.slice(0);
+  callbacks.length = 0;
+  for (var i = 0; i < copies.length; i++) {
+    copies[i]();
+  }
+}
+
+// Here we have async deferring wrappers using both microtasks and (macro) tasks.
+// In < 2.4 we used microtasks everywhere, but there are some scenarios where
+// microtasks have too high a priority and fire in between supposedly
+// sequential events (e.g. #4521, #6690) or even between bubbling of the same
+// event (#6566). However, using (macro) tasks everywhere also has subtle problems
+// when state is changed right before repaint (e.g. #6813, out-in transitions).
+// Here we use microtask by default, but expose a way to force (macro) task when
+// needed (e.g. in event handlers attached by v-on).
+var microTimerFunc = void 0;
+var macroTimerFunc = void 0;
+var useMacroTask = false;
+
+// Determine (macro) task defer implementation.
+// Technically setImmediate should be the ideal choice, but it's only available
+// in IE. The only polyfill that consistently queues the callback after all DOM
+// events triggered in the same loop is by using MessageChannel.
+/* istanbul ignore if */
+if (typeof setImmediate !== 'undefined' && (0, _env.isNative)(setImmediate)) {
+  macroTimerFunc = function macroTimerFunc() {
+    setImmediate(flushCallbacks);
+  };
+} else if (typeof MessageChannel !== 'undefined' && ((0, _env.isNative)(MessageChannel) ||
+// PhantomJS
+MessageChannel.toString() === '[object MessageChannelConstructor]')) {
+  var channel = new MessageChannel();
+  var port = channel.port2;
+  channel.port1.onmessage = flushCallbacks;
+  macroTimerFunc = function macroTimerFunc() {
+    port.postMessage(1);
+  };
+} else {
+  /* istanbul ignore next */
+  macroTimerFunc = function macroTimerFunc() {
+    setTimeout(flushCallbacks, 0);
+  };
+}
+
+// Determine microtask defer implementation.
+/* istanbul ignore next, $flow-disable-line */
+if (typeof Promise !== 'undefined' && (0, _env.isNative)(Promise)) {
+  var p = Promise.resolve();
+  microTimerFunc = function microTimerFunc() {
+    p.then(flushCallbacks);
+    // in problematic UIWebViews, Promise.then doesn't completely break, but
+    // it can get stuck in a weird state where callbacks are pushed into the
+    // microtask queue but the queue isn't being flushed, until the browser
+    // needs to do some other work, e.g. handle a timer. Therefore we can
+    // "force" the microtask queue to be flushed by adding an empty timer.
+    if (_env.isIOS) setTimeout(_util.noop);
+  };
+} else {
+  // fallback to macro
+  microTimerFunc = macroTimerFunc;
+}
+
+/**
+ * Wrap a function so that if any code inside triggers state change,
+ * the changes are queued using a (macro) task instead of a microtask.
+ */
+function withMacroTask(fn) {
+  return fn._withTask || (fn._withTask = function () {
+    useMacroTask = true;
+    var res = fn.apply(null, arguments);
+    useMacroTask = false;
+    return res;
+  });
+}
+
+function nextTick(cb, ctx) {
+  var _resolve = void 0;
+  callbacks.push(function () {
+    if (cb) {
+      try {
+        cb.call(ctx);
+      } catch (e) {
+        // handleError(e, ctx, 'nextTick')
+        console.error(e, 'nextTick');
+      }
+    } else if (_resolve) {
+      _resolve(ctx);
+    }
+  });
+  if (!pending) {
+    pending = true;
+    if (useMacroTask) {
+      macroTimerFunc();
+    } else {
+      microTimerFunc();
+    }
+  }
+  // $flow-disable-line
+  if (!cb && typeof Promise !== 'undefined') {
+    return new Promise(function (resolve) {
+      _resolve = resolve;
+    });
+  }
+}
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../node_modules/timers-browserify/main.js */ "./node_modules/timers-browserify/main.js").setImmediate))
 
 /***/ }),
 
@@ -4746,6 +6342,24 @@ var _index = __webpack_require__(/*! ../util/index */ "./src/core/util/index.js"
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+/**
+ * 判断连个VNode是否相同
+ * @param {VNode} a 
+ * @param {VNode} b 
+ */
+function sameVnode(a, b) {
+    return a.key === b.key && (a.tag === b.tag && a.isComment === b.isComment && (0, _index.isDef)(a.data) === (0, _index.isDef)(b.data) //TODO:未加上input的判断
+    || (0, _index.isTrue)(a.isAsyncPlaceholder) && a.asyncFactory === b.asyncFactory && (0, _index.isUndef)(b.asyncFactory.error));
+}
+
+/* function sameInpuType(a, b) {
+    if(a.tag !== 'input') return true;
+    let i
+    const typeA = isDef(i = a.data) && isDef(i = i.attrs) && i.type
+    const typeB = isDef(i = b.data) && isDef(i = i.attrs) && i.type
+    return typeA === typeB || isTextInputType(typeA) && isTextInputType(typeB)
+} */
+
 function createPatchFunction(backend) {
     var i = void 0,
         j = void 0;
@@ -4776,6 +6390,7 @@ function createPatchFunction(backend) {
         } else if ((0, _index.isTrue)(vnode.isComment)) {
             //
         } else {
+            //直接当文本节点处理
             vnode.elm = nodeOps.createTextNode(vnode.text);
             insert(parentElm, vnode.elm, refElm);
         }
@@ -4788,7 +6403,6 @@ function createPatchFunction(backend) {
                     nodeOps.insertBefore(parent, elm, ref);
                 }
             } else {
-                console.log(parent, elm);
                 nodeOps.appendChild(parent, elm);
             }
         }
@@ -4797,7 +6411,6 @@ function createPatchFunction(backend) {
     function createChildren(vnode, children, insertedVnodeQueue) {
         if (Array.isArray(children)) {
             for (var _i = 0; _i < children.length; ++_i) {
-                console.log();
                 createElm(children[_i], insertedVnodeQueue, vnode.elm, null, true, children, _i);
             }
         } else if ((0, _index.isPrimitive)(vnode.text)) {
@@ -4816,7 +6429,9 @@ function createPatchFunction(backend) {
         for (; startIdx <= endIdx; ++startIdx) {
             var ch = vnodes[startIdx];
             if ((0, _index.isDef)(ch)) {
-                if ((0, _index.isDef)(ch.tag)) {} else {
+                if ((0, _index.isDef)(ch.tag)) {
+                    removeNode(ch.elm);
+                } else {
                     // Text node
                     removeNode(ch.elm);
                 }
@@ -4824,8 +6439,76 @@ function createPatchFunction(backend) {
         }
     }
 
-    return function patch(oldVnode, vnode, hydrating, removeOnly) {
+    /**
+     * 根节点的是否有tag属性
+     * @param {Vnode} 
+     * @returns {Boolean}
+     */
+    function isPatchable(vnode) {
+        while (vnode.componentInstance) {
+            vnode = vnode.componentInstance._vnode;
+        }
+        return (0, _index.isDef)(vnode.tag);
+    }
 
+    function updateChildren(parentElm, oldCh, newCh, insertedVnodeQueue, removeOnly) {
+        var oldStartIdx = 0;
+        var newStartIdx = 0;
+        var oldEndIdx = oldCh.length - 1;
+        var oldStartVnode = oldCh[0];
+        var oldEndVnode = oldCh[oldEndIdx];
+        var newEndIdx = newCh.length - 1;
+        var newStartVnode = newCh[0];
+        var newEndVnode = newCh[newEndIdx];
+        var oldKeyToIdx = void 0,
+            idxInOld = void 0,
+            vnodeToMove = void 0,
+            refElm = void 0;
+
+        /**
+         * removeOnly只是<transition-group>使用的一个特殊标识
+         */
+        var canMove = !removeOnly;
+
+        while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
+            if ((0, _index.isUndef)(oldStartVnode)) {
+                oldStartVnode = oldCh[++oldStartIdx];
+            } else if ((0, _index.isUndef)(oldEndVnode)) {
+                oldEndVnode = oldCh[--oldEndIdx];
+            } else if (oldStartVnode, newStartVnode) {
+                patchVnode(oldStartVnode, newStartVnode, insertedVnodeQueue);
+                oldStartVnode = oldCh[++oldStartIdx];
+                newStartVnode = newCh[++newStartIdx];
+            }
+        }
+    }
+
+    function patchVnode(oldVnode, vnode, insertedVnodeQueue, removeOnly) {
+        if (oldVnode === vnode) {
+            return;
+        }
+        var elm = vnode.elm = oldVnode.elm;
+
+        var data = vnode.data;
+        var oldCh = oldVnode.children;
+        var ch = vnode.children;
+
+        if ((0, _index.isUndef)(vnode.text)) {
+            if ((0, _index.isDef)(oldCh) && (0, _index.isDef)(ch)) {
+                //如果oldVNode与vnode的children属性存在                
+                if (oldCh !== ch) {
+                    updateChildren(elm, oldCh, ch, insertedVnodeQueue, removeOnly);
+                }
+            } else if ((0, _index.isDef)(ch)) {} else if ((0, _index.isDef)(oldCh)) {} else if ((0, _index.isDef)(oldVnode.text)) {
+                // oldVnode有文本节点，而vnode没有，那么就清空这个节点
+                nodeOps.setTextContent(elm, '');
+            }
+        } else if (oldVnode.text !== vnode.text) {
+            nodeOps.setTextContent(elm, vnode.text);
+        }
+    }
+
+    return function patch(oldVnode, vnode, hydrating, removeOnly) {
         var isInitialPatch = false;
         var insertedVnodeQueue = [];
 
@@ -4833,27 +6516,33 @@ function createPatchFunction(backend) {
             //暂无
         } else {
             var isRealElement = (0, _index.isDef)(oldVnode.nodeType);
-            if (!isRealElement) {} else {
+            if (!isRealElement && sameVnode(oldVnode, vnode)) {
+                //patch 已经存在的根节点
+                console.log(oldVnode, vnode);
+                patchVnode(oldVnode, vnode, insertedVnodeQueue, removeOnly);
+            } else {
                 if (isRealElement) {
                     //挂载一个真正的DOM节点
                     //NOTE:忽略服务端渲染
 
-                    //创建一个VNode来取代
+                    //创建一个VNode来取代真是节点
                     oldVnode = emptyNodeAt(oldVnode);
                 }
-
                 //取代已经存在的元素
                 var oldElm = oldVnode.elm;
                 var parentElm = nodeOps.parentNode(oldElm);
 
                 // 创建新的节点
-                createElm(vnode, insertedVnodeQueue, null, nodeOps.nextSibling(oldElm));
+                createElm(vnode, insertedVnodeQueue, parentElm, nodeOps.nextSibling(oldElm));
 
                 if ((0, _index.isDef)(parentElm)) {
+                    //移除原来的根节点
                     removeVnodes(parentElm, [oldVnode], 0, 0);
                 } else {}
             }
         }
+
+        return vnode.elm;
     };
 }
 
@@ -4880,7 +6569,7 @@ var VNode = function VNode(tag, data, children, text, elm, context, componentOpt
     _classCallCheck(this, VNode);
 
     this.tag = tag;
-    this.data = data;
+    this.data = data; //data 属性包含了最后渲染成真实dom节点后，节点上的class,attribute,style以及绑定的事件
     this.children = children;
     this.text = text;
     this.elm = elm;

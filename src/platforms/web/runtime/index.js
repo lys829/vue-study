@@ -1,10 +1,21 @@
 import Vue from '../../../core/index'
 import {inBrowser, isChrome} from '../../../core/util/index'
 import { mountComponent } from 'core/instance/lifecycle'
-import { query } from '../util';
 import { patch } from './patch'
 
+import {
+    query,
+    isReservedTag,
+    getTagNamespace,
+    isReservedAttr
+} from '../util/index'
+
+
+
 //TODO:  install platform specific utils
+Vue.config.isReservedTag = isReservedTag
+Vue.config.getTagNamespace = getTagNamespace
+Vue.config.isReservedAttr = isReservedAttr
 
 //TODO: install platform runtime directives & components
 

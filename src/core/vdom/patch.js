@@ -9,6 +9,11 @@ import {
     isPrimitive
 } from '../util/index'
 
+/**
+ * 判断连个VNode是否相同
+ * @param {VNode} a 
+ * @param {VNode} b 
+ */
 function sameVnode(a, b) {
     return (
         a.key === b.key && (
@@ -140,7 +145,9 @@ export function createPatchFunction(backend) {
         
         while(oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
             if(isUndef(oldStartVnode)) {
-
+                oldStartVnode = oldCh[++oldStartIdx];
+            } else if(isUndef(oldEndVnode)) {
+                oldEndVnode = oldCh[--oldEndIdx];
             } else if(oldStartVnode, newStartVnode) {
                 patchVnode(oldStartVnode, newStartVnode, insertedVnodeQueue);
                 oldStartVnode = oldCh[++oldStartIdx];
@@ -162,9 +169,17 @@ export function createPatchFunction(backend) {
     
         if(isUndef(vnode.text)) {
             if(isDef(oldCh) && isDef(ch)) { 
+                //如果oldVNode与vnode的children属性存在                
                 if(oldCh !== ch ) {
                     updateChildren(elm, oldCh, ch, insertedVnodeQueue, removeOnly)
                 }
+            } else if(isDef(ch)) {
+
+            } else if(isDef(oldCh)) {
+
+            } else if(isDef(oldVnode.text)) {
+                // oldVnode有文本节点，而vnode没有，那么就清空这个节点
+                nodeOps.setTextContent(elm, '');
             }
         } else if(oldVnode.text !== vnode.text) {
             nodeOps.setTextContent(elm, vnode.text);
@@ -188,7 +203,7 @@ export function createPatchFunction(backend) {
                     //挂载一个真正的DOM节点
                     //NOTE:忽略服务端渲染
 
-                    //创建一个VNode来取代真是节点
+                    //创建一个VNode来取代真实节点
                     oldVnode = emptyNodeAt(oldVnode);
                 }
                 //取代已经存在的元素
@@ -199,7 +214,7 @@ export function createPatchFunction(backend) {
                 createElm(vnode, insertedVnodeQueue, parentElm, nodeOps.nextSibling(oldElm));
 
                 if (isDef(parentElm)) {
-                    //移除原来的节点
+                    //移除原来的根节点
                     removeVnodes(parentElm, [oldVnode], 0, 0);
                 } else {
 

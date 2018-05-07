@@ -1,8 +1,9 @@
+import config from '../config'
 import { ASSET_TYPES } from 'shared/constants'
 
 export function initGlobalAPI(Vue) {
     const configDef = {};
-    configDef.get = ()=> {};
+    configDef.get = ()=> config;
     // configDef.set = ()=> {} 只读属性
 
     Object.defineProperty(Vue, 'config', configDef)

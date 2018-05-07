@@ -1,25 +1,20 @@
 import Vue from './src/platforms/web/entry-runtime-with-compiler'
 
+// import demo from './examples/simple.js'
+// import demo from './examples/watcher'
+// import demo from './examples/updateVm'
+import demo from './examples/array'
+
+
 const appNode = document.getElementById('app');
-
-const vm = new Vue({
-    el: appNode,
-    data: {
-        a: 1
-    },
-    template: '<div><span>{{a}}</span><p>{{b}}</p></div>',
-    computed: {
-        b: function () {
-            const res = this.a + 2;
-            return res
-        }
-    }
-})
-
-// console.log('vm.b: ', vm.b)
+demo(appNode);
 
 
-setTimeout(()=> {
-    vm.a = 6
-    console.log('computed b: ', vm.b);
-}, 2000)
+
+
+
+if(module.hot) {
+    //热更新
+    module.hot.accept();
+}
+
