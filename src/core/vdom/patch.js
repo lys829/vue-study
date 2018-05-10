@@ -8,6 +8,7 @@ import {
     isRegExp,
     isPrimitive
 } from '../util/index'
+import { WSAVERNOTSUPPORTED } from 'constants';
 
 /**
  * 判断连个VNode是否相同
@@ -38,6 +39,21 @@ function sameVnode(a, b) {
     return typeA === typeB || isTextInputType(typeA) && isTextInputType(typeB)
 } */
 
+
+function createKeyToOldIdx(children, beginIdx, endIdx) {
+    let i, key;
+    const map = {};
+    for(i = beginIdx; i <= endIdx; ++i) {
+        key = children[i].key;
+        if(isDef(key)) {
+            map[key] = i
+        }
+    }
+    return map;
+}
+
+
+
 export function createPatchFunction(backend) {
     let i, j;
     const cbs = {};
@@ -53,7 +69,7 @@ export function createPatchFunction(backend) {
         const data = vnode.data;
         const children = vnode.children;
         const tag = vnode.tag;
-
+        
         if (isDef(tag)) {
             // NOTE: 未考虑SVG元素
             vnode.elm = nodeOps.createElement(tag, vnode);
@@ -64,7 +80,7 @@ export function createPatchFunction(backend) {
             }
             insert(parentElm, vnode.elm, refElm);
         } else if (isTrue(vnode.isComment)) {
-            //
+            //注释
         } else {
             //直接当文本节点处理
             vnode.elm = nodeOps.createTextNode(vnode.text);
@@ -102,16 +118,30 @@ export function createPatchFunction(backend) {
         }
     }
 
+    /**
+     * 
+     * @param {Node} parentElm 
+     * @param {Array} vnodes 
+     * @param {Number} startIdx 
+     * @param {Number} endIdx 
+     */
     function removeVnodes(parentElm, vnodes, startIdx, endIdx) {
         for (; startIdx <= endIdx; ++startIdx) {
             const ch = vnodes[startIdx];
             if (isDef(ch)) {
                 if (isDef(ch.tag)) {
+                    //TODO: remove hook
                     removeNode(ch.elm);
                 } else { // Text node
                     removeNode(ch.elm);
                 }
             }
+        }
+    }
+
+    function addVnodes(parentElm, refElm, vnodes, startIdx, endIdx, insertedVnodeQueue) {
+        for (; startIdx <= endIdx; ++startIdx) {
+            createElm(vnodes[startIdx], insertedVnodeQueue, parentElm, refElm, false, vnodes, startIdx)
         }
     }
 
@@ -142,19 +172,63 @@ export function createPatchFunction(backend) {
          * removeOnly只是<transition-group>使用的一个特殊标识
          */
         const canMove = !removeOnly
-        
         while(oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
             if(isUndef(oldStartVnode)) {
                 oldStartVnode = oldCh[++oldStartIdx];
             } else if(isUndef(oldEndVnode)) {
                 oldEndVnode = oldCh[--oldEndIdx];
-            } else if(oldStartVnode, newStartVnode) {
+            } else if(sameVnode(oldStartVnode, newStartVnode)) {
+                console.log('1.oldStartVnode === newStartVnode', oldStartIdx, newStartIdx, oldEndIdx, newEndIdx)
                 patchVnode(oldStartVnode, newStartVnode, insertedVnodeQueue);
                 oldStartVnode = oldCh[++oldStartIdx];
                 newStartVnode = newCh[++newStartIdx];
+            } else if(sameVnode(oldEndVnode, newEndVnode)) {
+                console.log('2.oldEndVnode === newEndVnode')
+            } else if(sameVnode(oldStartVnode, newEndVnode)) {
+                console.log('3.oldStartVnode === newEndVnode')
+            } else if(sameVnode(oldEndVnode, newStartVnode)) {
+                console.log('4.oldEndVnode === newStartVnode')
+            } else {
+                console.log('5. .....')
+                if(isUndef(oldKeyToIdx)) {
+                    oldKeyToIdx = createKeyToOldIdx(oldCh, oldStartIdx, oldEndIdx);
+                }
+                idxInOld = isDef(newStartVnode.key) 
+                    ? oldKeyToIdx[newStartVnode.key] 
+                    : findIdxInOld(newStartVnode, oldCh, oldStartIdx, oldEndIdx);
+
+                if(isUndef(idxInOld)) { //new Element
+                    createElm(newStartVnode, insertedVnodeQueue, parentElm, oldStartVnode.elm, false, newCh, newStartIdx);
+                } else {
+                    vnodeToMove = oldCh[idxInOld];
+                    if(sameVnode(vnodeToMove, newStartVnode)) {
+                        patchVnode(vnodeToMove, newStartVnode, insertedVnodeQueue);
+                        oldCh[idxInOld] = undefined
+                        canMove && nodeOps.insertBefore(parentElm, vnodeToMove.elm, oldStartVnode.elm)
+                    } else {
+                        // same key but different element. treat as new element
+                        createElm(newStartVnode, insertedVnodeQueue, parentElm, oldStartVnode.elm, false, newCh, newStartIdx)
+                    }
+                    newStartVnode = newCh[++newStartIdx]
+                }
+            }
+            if(oldStartIdx > oldEndIdx) {
+                refElm = isUndef(newCh[newEndIdx + 1]) ? null : newCh[newEndIdx + 1].elm;
+                addVnodes(parentElm, refElm, newCh, newStartIdx, newEndIdx, insertedVnodeQueue);
+            } else if(newStartIdx > newEndIdx){ //移除旧节点
+                removeVnodes(parentElm, oldCh, oldStartIdx, oldEndIdx)
             }
         }
 
+    }
+
+    function findIdxInOld(node, oldCh, start, end) {
+        for (let i = start; i < end; i++) {
+            const c = oldCh[i];
+            if(isDef(c) && sameVnode(node, c)) {
+                return i;
+            }
+        }
     }
 
     function patchVnode(oldVnode, vnode, insertedVnodeQueue, removeOnly) {
@@ -164,6 +238,7 @@ export function createPatchFunction(backend) {
         const elm = vnode.elm = oldVnode.elm;
 
         const data = vnode.data;
+
         const oldCh = oldVnode.children;
         const ch = vnode.children;
     
@@ -188,9 +263,12 @@ export function createPatchFunction(backend) {
     }
 
     return function patch(oldVnode, vnode, hydrating, removeOnly) {
+        if(isUndef(vnode)) {
+            return;
+        }
+
         let isInitialPatch = false;
         const insertedVnodeQueue = [];
-
         if (isUndef(oldVnode)) {
             //暂无
         } else {
@@ -209,7 +287,6 @@ export function createPatchFunction(backend) {
                 //取代已经存在的元素
                 const oldElm = oldVnode.elm;
                 const parentElm = nodeOps.parentNode(oldElm);
-
                 // 创建新的节点
                 createElm(vnode, insertedVnodeQueue, parentElm, nodeOps.nextSibling(oldElm));
 

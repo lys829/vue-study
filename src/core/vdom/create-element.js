@@ -8,13 +8,19 @@ import {
 } from '../util/index'
 import config from '../config';
 
+import {
+    normalizeChildren
+    // simpleNormalizeChildren
+  } from './helpers/index'
+  
+
 const SIMPLE_NORMALIZE = 1
 const ALWAYS_NORMALIZE = 2
 
 export function createElement(context, tag, data, children, normalizationType, alwaysNormalize) {
-    // console.log('createElement: >> ', context, tag, data, children, normalizationType, alwaysNormalize)
-    //TODO: 未判断原始值
-    if(Array.isArray(data)) {
+    // console.log('createElement: >> ', tag, data, children, normalizationType, alwaysNormalize)
+    //兼容参数差异
+    if(Array.isArray(data) || isPrimitive(data)) {
         normalizationType = children;
         children = data;
         data = undefined;
@@ -23,7 +29,6 @@ export function createElement(context, tag, data, children, normalizationType, a
     if(isTrue(alwaysNormalize)) {
         normalizationType = ALWAYS_NORMALIZE;
     }
-
     return _createElement(context, tag, data, children, normalizationType)
 }
 
@@ -36,17 +41,26 @@ export function createElement(context, tag, data, children, normalizationType, a
  * @param {Number} normalizationType 
  */
 export function _createElement(context, tag, data, children, normalizationType) {
-    //TODO: 判断data是否为 observed data
-    
+    // 检测ata是否为 observed data
+    if(isDef(data) && isDef(data.__ob__)) {
+        console.warn(`Avoid using observed data object as vnode data: ${JSON.stringify(data)}\n` +
+        'Always create fresh vnode data objects in each render!',)
+        return createEmptyVNode();
+    }
+
     if(!tag) {
         return createEmptyVNode;
     }
 
-    /* if(normalizationType === ALWAYS_NORMALIZE) {
+    if(Array.isArray(children) && typeof children[0] === 'function') {
+    }
+    
+    if(normalizationType === ALWAYS_NORMALIZE) {
         children = normalizeChildren(children);
     } else {
-        children = simpleNormalizeChildren(children);
-    } */
+        // children = simpleNormalizeChildren(children);
+    }
+
     let vnode, ns;
     if(typeof tag === 'string') {
         let Ctor
@@ -59,7 +73,6 @@ export function _createElement(context, tag, data, children, normalizationType) 
     } else {
 
     }
-    
     if(Array.isArray(vnode)) {
         return vnode;
     } else if(isDef(vnode)) {

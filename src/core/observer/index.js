@@ -1,6 +1,7 @@
 
 import Dep from './dep'
 import VNode from '../vdom/vnode'
+import { arrayMethods } from './array'
 
 import {
     def,
@@ -15,6 +16,7 @@ import {
     isServerRendering
 } from '../util/index'
 
+const arrayKeys = Object.getOwnPropertyNames(arrayMethods)
 
 /**
  * 处理某些情况下,停用对对象属性的观察
@@ -27,12 +29,15 @@ export function toggleObserving(value) {
 export class Observer {
     constructor(value) {
         this.value = value;
-        this.dep = new Dep();
+        this.dep = new Dep(`observer ${value.toString()}`);
         this.vmCount = 0;
         //将Observer实例绑定到data到__ob__,在observer函数中会检测data对象是否包含Observer实例
         def(value, '__ob__', this);
         if(Array.isArray(value)) {
-            console.log('no')
+            // const augment = hasProto ? protoAugment : copyAugment;
+            // 劫持数组的原生方法
+            protoAugment(value, arrayMethods, arrayKeys)
+            this.observeArray(value);
         } else {
             this.walk(value);
         }
@@ -44,6 +49,26 @@ export class Observer {
             defineReactive(obj, keys[i]);
         }
     }
+
+    /**
+     * Observer a list of Array items
+     * @param {*} items 
+     */
+    observeArray(items) {
+        for(let i = 0, l = items.length; i < l; i++) {
+            observe(items[i]);
+        }
+    }
+}
+
+/**
+ * 覆盖原型的方法
+ * @param {*} target 
+ * @param {Object} src 
+ * @param {*} keys 
+ */
+function protoAugment(target, src, keys) { 
+    target.__proto__ = src;
 }
 
 
@@ -56,13 +81,12 @@ export function observe(value, asRootData) {
         ob = value.__ob__;
     } else if(
         shouldObserve &&
-        isPlainObject(value) && 
+        (Array.isArray(value) || isPlainObject(value)) && 
         Object.isExtensible(value) && 
         !value.isVue
     ) {
         ob = new Observer(value);
     }
-
     if(asRootData && ob) {
         //对与observe的根数据计数
         ob.vmCount++;
@@ -93,7 +117,7 @@ export function defineReactive(obj, key, val, customSetter, shallow) {
         // Observe构造函数中的walk方法中调用defineReactive没有这个val参数
         val = obj[key];
     }
-    //TODO: 未知
+    //NOTE: 多层结构 childOb如果存在，为Observe实例
     let childOb = !shallow && observe(val);
     
     Object.defineProperty(obj, key, {
@@ -103,8 +127,13 @@ export function defineReactive(obj, key, val, customSetter, shallow) {
             const value = getter ? getter.call(obj) : val;
             if(Dep.target){ 
                 dep.depend();
+                
                 if(childOb) {
-                    
+                    childOb.dep.depend();
+                    //NOTE: 未知作用，先注释, 可能和Vue.set方法有关
+                    /* if(Array.isArray(value)) {
+                        dependArray(value);
+                    } */
                 }
             }
             return value;
@@ -121,8 +150,18 @@ export function defineReactive(obj, key, val, customSetter, shallow) {
                 val = newVal;
             }
             childOb = !shallow && observe(newVal)
-            console.log('新的值为一个对象, childOb >>>>', childOb)
             dep.notify()
         }
     })
+}
+
+
+function dependArray(value) {
+    for(let e, i = 0, l = value.length; i < l; i++) {
+        e = value[i];
+        e && e.__ob__ && e.__ob__.dep.depend();
+        if(Array.isArray(e)){
+            dependArray(e);
+        }
+    }
 }

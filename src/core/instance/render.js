@@ -19,7 +19,7 @@ export function initRender(vm) {
     /**
      * 在实例上绑定createElement函数
      * 这样就能获取正确的渲染上下文
-     * 参数依次为:  tag, data, children, normalizationType, alwaysNormalize
+     * 参数依次为: vm tag, data, children, normalizationType, alwaysNormalize
      * 内部版本由模板编译的渲染函数使用
      */
     vm._c = (a, b, c, d) => createElement(vm, a, b, c, d, false);

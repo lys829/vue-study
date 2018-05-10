@@ -88,7 +88,7 @@ function initData(vm) {
             proxy(vm, '_data', key)
         }
     }
-
+    
     // observe data
     observe(data, true /* asRootData */)
 }

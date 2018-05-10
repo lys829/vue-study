@@ -5,6 +5,7 @@ import { createEmptyVNode } from '../vdom/vnode'
 import {
     noop,
 } from '../util/index'
+import { pushTarget } from '../observer/dep';
 
 
 export let activeInstance = null;
@@ -94,4 +95,25 @@ export function lifecycleMixin(Vue) {
     }
     Vue.prototype.$forceUpdate = function() {}
     Vue.prototype.$destroy = function() {}
+}
+
+
+
+export function callHook(vm, hook) {
+    // #7573 disable dep collection when invoking lifecycle hooks
+    pushTarget();
+    const handlers = vm.$options[hook];
+    if(handlers) {
+        for(let i = 0, j = handlers.length; i < j; i++) {
+            try {
+                handlers[i].call(vm);
+            } catch(e) {
+                // handerError(e, vm, `${hook} hook`)
+                console.error(e, vm, `${hook} hook`)
+            }
+        }
+    }
+    if(vm._hasHookEvent) {
+        vm.$emit('hook:' + hook);
+    }
 }
