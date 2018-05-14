@@ -1,6 +1,6 @@
 import { mergeOptions } from '../util/index'
 
-import { initLifecycle } from './lifecycle'
+import { initLifecycle, callHook } from './lifecycle'
 import { initRender } from './render'
 import { initState } from './state'
 
@@ -23,8 +23,9 @@ export function initMixin(Vue) {
         initLifecycle(vm);
 
         initRender(vm);
-        
+        callHook(vm, 'beforeCreate');
         initState(vm);
+        callHook(vm, 'created')
 
         //vm._name = formatComponentName(vm, false);
         if(vm.$options.el) {

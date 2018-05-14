@@ -12,7 +12,7 @@ export function createTextNode(text) {
     return document.createTextNode(text);
 }
 
-export function createCommnt(text) {
+export function createComment(text) {
     return document.createComment(text);
 }
 

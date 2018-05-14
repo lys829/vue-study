@@ -2,7 +2,17 @@ import { isFalse, isTrue, isDef, isUndef, isPrimitive } from 'shared/util'
 import VNode, { createTextVNode } from 'core/vdom/vnode'
 
 
-// 2
+//TODO:未知
+export function simpleNormalizeChildren (children) {
+    for (let i = 0; i < children.length; i++) {
+      if (Array.isArray(children[i])) {
+        return Array.prototype.concat.apply([], children)
+      }
+    }
+    return children
+  }
+
+
 export function normalizeChildren(children) {
     return isPrimitive(children)
         ? [createTextVNode(children)]
@@ -35,7 +45,7 @@ function normalizeArrayChildren(children, nestedIndex) {
         if(Array.isArray(c)) {
             if(c.length > 0) {
                 c = normalizeArrayChildren(c, `${nestedIndex || ''}_${i}`);
-                // merge adjacent text nodes(合并相邻的文本节点)
+                // merge adjacent text nodes(合并相邻的文本节点<div{aaaa}{cccc}></div>)
                 /* if(isTextNode(c[0]) && isTextNode(last)) {
                     res[lastIndex] = createTextVNode(last.text + (c[0].text))
                     c.shift();

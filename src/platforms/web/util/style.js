@@ -16,7 +16,7 @@ export const parseStyleText = cached(function (cssText) {
 })
 
 // merge static and dynamic style data on the same vnode
-function normalizeStyleData (data: VNodeData): ?Object {
+function normalizeStyleData (data) {
   const style = normalizeStyleBinding(data.style)
   // static style is pre-processed into an object during compilation
   // and is always a fresh object, so it's safe to merge into it
@@ -26,7 +26,7 @@ function normalizeStyleData (data: VNodeData): ?Object {
 }
 
 // normalize possible array / string values into Object
-export function normalizeStyleBinding (bindingStyle: any): ?Object {
+export function normalizeStyleBinding (bindingStyle) {
   if (Array.isArray(bindingStyle)) {
     return toObject(bindingStyle)
   }
@@ -40,7 +40,7 @@ export function normalizeStyleBinding (bindingStyle: any): ?Object {
  * parent component style should be after child's
  * so that parent component's style could override it
  */
-export function getStyle (vnode: VNodeWithData, checkChild: boolean): Object {
+export function getStyle (vnode, checkChild) {
   const res = {}
   let styleData
 
@@ -56,7 +56,6 @@ export function getStyle (vnode: VNodeWithData, checkChild: boolean): Object {
       }
     }
   }
-
   if ((styleData = normalizeStyleData(vnode.data))) {
     extend(res, styleData)
   }

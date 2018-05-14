@@ -3,8 +3,10 @@ import Vue from './src/platforms/web/entry-runtime-with-compiler'
 // import demo from './examples/simple.js'
 // import demo from './examples/watcher'
 // import demo from './examples/updateVm'
-import demo from './examples/array'
+// import demo from './examples/array'
+// import demo from './examples/lifeCycle'
 
+import demo from './examples/vdom'
 
 const appNode = document.getElementById('app');
 demo(appNode);

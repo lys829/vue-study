@@ -32,6 +32,7 @@ export class Observer {
         this.dep = new Dep(`observer ${value.toString()}`);
         this.vmCount = 0;
         //将Observer实例绑定到data到__ob__,在observer函数中会检测data对象是否包含Observer实例
+        //__ob__不可枚举
         def(value, '__ob__', this);
         if(Array.isArray(value)) {
             // const augment = hasProto ? protoAugment : copyAugment;

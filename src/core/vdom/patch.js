@@ -10,6 +10,10 @@ import {
 } from '../util/index'
 import { WSAVERNOTSUPPORTED } from 'constants';
 
+export const emptyNode = new VNode('', {}, []);
+
+const hooks = ['create', 'activate', 'update', 'remove', 'destroy'];
+
 /**
  * 判断连个VNode是否相同
  * @param {VNode} a 
@@ -20,10 +24,10 @@ function sameVnode(a, b) {
         a.key === b.key && (
             (
                 a.tag === b.tag &&
-                a.isComment === b.isComment && 
+                a.isComment === b.isComment &&
                 isDef(a.data) === isDef(b.data) //TODO:未加上input的判断
             ) || (
-                isTrue(a.isAsyncPlaceholder) && 
+                isTrue(a.isAsyncPlaceholder) &&
                 a.asyncFactory === b.asyncFactory &&
                 isUndef(b.asyncFactory.error)
             )
@@ -43,9 +47,9 @@ function sameVnode(a, b) {
 function createKeyToOldIdx(children, beginIdx, endIdx) {
     let i, key;
     const map = {};
-    for(i = beginIdx; i <= endIdx; ++i) {
+    for (i = beginIdx; i <= endIdx; ++i) {
         key = children[i].key;
-        if(isDef(key)) {
+        if (isDef(key)) {
             map[key] = i
         }
     }
@@ -58,7 +62,15 @@ export function createPatchFunction(backend) {
     let i, j;
     const cbs = {};
 
-    const { nodeOps } = backend;
+    const { modules, nodeOps } = backend;
+    for (i = 0; i < hooks.length; ++i) {
+        cbs[hooks[i]] = [];
+        for (j = 0; j < modules.length; ++j) {
+            if (isDef(modules[j][hooks[i]])) {
+                cbs[hooks[i]].push(modules[j][hooks[i]])
+            }
+        }
+    }
 
     function emptyNodeAt(elm) {
         return new VNode(nodeOps.tagName(elm).toLowerCase(), {}, [], undefined, elm);
@@ -66,27 +78,44 @@ export function createPatchFunction(backend) {
 
     let creatingElmInVPre = 0;
     function createElm(vnode, insertedVnodeQueue, parentElm, refElm, nested, ownerArray, index) {
+
+        /* if(createComponent(vnode, insertedVnodeQueue, parentElm, refElm)) {
+            return;
+        } */
+
         const data = vnode.data;
         const children = vnode.children;
         const tag = vnode.tag;
-        
+
         if (isDef(tag)) {
             // NOTE: 未考虑SVG元素
             vnode.elm = nodeOps.createElement(tag, vnode);
 
             createChildren(vnode, children, insertedVnodeQueue);
             if (isDef(data)) {
-                //TODO: 钩子函数
+                invokeCreateHooks(vnode, insertedVnodeQueue);
             }
             insert(parentElm, vnode.elm, refElm);
         } else if (isTrue(vnode.isComment)) {
             //注释
+            vnode.elm = nodeOps.createComment(vnode.text);
+            insert(parentElm, vnode.elm, refElm);
         } else {
             //直接当文本节点处理
             vnode.elm = nodeOps.createTextNode(vnode.text);
             insert(parentElm, vnode.elm, refElm);
         }
 
+    }
+
+    function createComponent(vnode, insertedVnodeQueue, parentElm, refElm) {
+        let i = vnode.data;
+        if (isDef(i)) {
+            const isReactivated = isDef(vnode.componentInstance) && i.keepAlive;
+            if (isDef(i = i.hook) && isDef(i = i.init)) {
+                i(vnode, false /* hydrating */);
+            }
+        }
     }
 
     function insert(parent, elm, ref) {
@@ -145,13 +174,23 @@ export function createPatchFunction(backend) {
         }
     }
 
+    function invokeCreateHooks(vnode, insertedVnodeQueue) {
+        for (let i = 0; i < cbs.create.length; i++) {
+            cbs.create[i](emptyNode, vnode);
+        }
+        i = vnode.data.hook;
+        if (isDef(i)) {
+
+        }
+    }
+
     /**
      * 根节点的是否有tag属性
      * @param {Vnode} 
      * @returns {Boolean}
      */
     function isPatchable(vnode) {
-        while(vnode.componentInstance) {
+        while (vnode.componentInstance) {
             vnode = vnode.componentInstance._vnode;
         }
         return isDef(vnode.tag);
@@ -160,7 +199,7 @@ export function createPatchFunction(backend) {
     function updateChildren(parentElm, oldCh, newCh, insertedVnodeQueue, removeOnly) {
         let oldStartIdx = 0;
         let newStartIdx = 0;
-        let oldEndIdx = oldCh.length - 1;        
+        let oldEndIdx = oldCh.length - 1;
         let oldStartVnode = oldCh[0];
         let oldEndVnode = oldCh[oldEndIdx];
         let newEndIdx = newCh.length - 1;
@@ -172,50 +211,62 @@ export function createPatchFunction(backend) {
          * removeOnly只是<transition-group>使用的一个特殊标识
          */
         const canMove = !removeOnly
-        while(oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
-            if(isUndef(oldStartVnode)) {
+        while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
+            if (isUndef(oldStartVnode)) {
                 oldStartVnode = oldCh[++oldStartIdx];
-            } else if(isUndef(oldEndVnode)) {
+            } else if (isUndef(oldEndVnode)) {
                 oldEndVnode = oldCh[--oldEndIdx];
-            } else if(sameVnode(oldStartVnode, newStartVnode)) {
+            } else if (sameVnode(oldStartVnode, newStartVnode)) {
                 console.log('1.oldStartVnode === newStartVnode', oldStartIdx, newStartIdx, oldEndIdx, newEndIdx)
                 patchVnode(oldStartVnode, newStartVnode, insertedVnodeQueue);
                 oldStartVnode = oldCh[++oldStartIdx];
                 newStartVnode = newCh[++newStartIdx];
-            } else if(sameVnode(oldEndVnode, newEndVnode)) {
+            } else if (sameVnode(oldEndVnode, newEndVnode)) {
                 console.log('2.oldEndVnode === newEndVnode')
-            } else if(sameVnode(oldStartVnode, newEndVnode)) {
+                patchVnode(oldEndVnode, newEndVnode, insertedVnodeQueue);
+                oldEndVnode = oldCh[--oldEndIdx]
+                newEndVnode = newCh[--newEndIdx]
+            } else if (sameVnode(oldStartVnode, newEndVnode)) {
                 console.log('3.oldStartVnode === newEndVnode')
-            } else if(sameVnode(oldEndVnode, newStartVnode)) {
-                console.log('4.oldEndVnode === newStartVnode')
+                patchVnode(oldStartVnode, newEndVnode, insertedVnodeQueue)
+                canMove && nodeOps.insertBefore(parentElm, oldStartVnode.elm, nodeOps.nextSibling(oldEndVnode.elm))
+                oldStartVnode = oldCh[++oldStartIdx]
+                newEndVnode = newCh[--newEndIdx]
+            } else if (sameVnode(oldEndVnode, newStartVnode)) {
+                patchVnode(oldEndVnode, newStartVnode, insertedVnodeQueue)
+                canMove && nodeOps.insertBefore(parentElm, oldEndVnode.elm, oldStartVnode.elm)
+                oldEndVnode = oldCh[--oldEndIdx]
+                newStartVnode = newCh[++newStartIdx]
             } else {
                 console.log('5. .....')
-                if(isUndef(oldKeyToIdx)) {
+                if (isUndef(oldKeyToIdx)) {
+                    //key与索引的映射
                     oldKeyToIdx = createKeyToOldIdx(oldCh, oldStartIdx, oldEndIdx);
                 }
-                idxInOld = isDef(newStartVnode.key) 
-                    ? oldKeyToIdx[newStartVnode.key] 
+                idxInOld = isDef(newStartVnode.key)
+                    ? oldKeyToIdx[newStartVnode.key]
                     : findIdxInOld(newStartVnode, oldCh, oldStartIdx, oldEndIdx);
-
-                if(isUndef(idxInOld)) { //new Element
+                if (isUndef(idxInOld)) {
+                    //在旧的vnodes中没有找到,则为新的vnode(可能是注释节点),
                     createElm(newStartVnode, insertedVnodeQueue, parentElm, oldStartVnode.elm, false, newCh, newStartIdx);
                 } else {
                     vnodeToMove = oldCh[idxInOld];
-                    if(sameVnode(vnodeToMove, newStartVnode)) {
+                    if (sameVnode(vnodeToMove, newStartVnode)) {
                         patchVnode(vnodeToMove, newStartVnode, insertedVnodeQueue);
                         oldCh[idxInOld] = undefined
                         canMove && nodeOps.insertBefore(parentElm, vnodeToMove.elm, oldStartVnode.elm)
                     } else {
                         // same key but different element. treat as new element
+                        // 创建一个新的节点放在oldStartVnode前面
                         createElm(newStartVnode, insertedVnodeQueue, parentElm, oldStartVnode.elm, false, newCh, newStartIdx)
                     }
-                    newStartVnode = newCh[++newStartIdx]
                 }
+                newStartVnode = newCh[++newStartIdx]
             }
-            if(oldStartIdx > oldEndIdx) {
+            if (oldStartIdx > oldEndIdx) {
                 refElm = isUndef(newCh[newEndIdx + 1]) ? null : newCh[newEndIdx + 1].elm;
                 addVnodes(parentElm, refElm, newCh, newStartIdx, newEndIdx, insertedVnodeQueue);
-            } else if(newStartIdx > newEndIdx){ //移除旧节点
+            } else if (newStartIdx > newEndIdx) { //移除旧节点
                 removeVnodes(parentElm, oldCh, oldStartIdx, oldEndIdx)
             }
         }
@@ -225,51 +276,69 @@ export function createPatchFunction(backend) {
     function findIdxInOld(node, oldCh, start, end) {
         for (let i = start; i < end; i++) {
             const c = oldCh[i];
-            if(isDef(c) && sameVnode(node, c)) {
+            if (isDef(c) && sameVnode(node, c)) {
                 return i;
             }
         }
     }
 
     function patchVnode(oldVnode, vnode, insertedVnodeQueue, removeOnly) {
-        if(oldVnode === vnode) {
+        if (oldVnode === vnode) {
             return;
         }
         const elm = vnode.elm = oldVnode.elm;
 
+        let i;
         const data = vnode.data;
+        if (isDef(data) && isDef(i = data.hook) && isDef(i = i.preatch)) {
+            i(oldVnode, vnode);
+        }
 
         const oldCh = oldVnode.children;
         const ch = vnode.children;
-    
-        if(isUndef(vnode.text)) {
-            if(isDef(oldCh) && isDef(ch)) { 
+        if (isDef(data) && isPatchable(vnode)) {
+            // 执行update钩子
+            for(i = 0; i < cbs.update.length; ++i) {
+                cbs.update[i](oldVnode, vnode);
+            }
+        }
+
+        if (isUndef(vnode.text)) {
+            if (isDef(oldCh) && isDef(ch)) {
                 //如果oldVNode与vnode的children属性存在                
-                if(oldCh !== ch ) {
+                if (oldCh !== ch) {
                     updateChildren(elm, oldCh, ch, insertedVnodeQueue, removeOnly)
                 }
-            } else if(isDef(ch)) {
+            } else if (isDef(ch)) {
 
-            } else if(isDef(oldCh)) {
+            } else if (isDef(oldCh)) {
 
-            } else if(isDef(oldVnode.text)) {
+            } else if (isDef(oldVnode.text)) {
                 // oldVnode有文本节点，而vnode没有，那么就清空这个节点
                 nodeOps.setTextContent(elm, '');
             }
-        } else if(oldVnode.text !== vnode.text) {
+        } else if (oldVnode.text !== vnode.text) {
             nodeOps.setTextContent(elm, vnode.text);
         }
 
     }
 
+    function invokeInsertHook(vnode, queue, initial) {
+        //TODO: 只考虑initial为false的一种情况
+        for (let i = 0; i < queue.length; i++) {
+            queue[i].data.hook.insert(queue[i]);
+        }
+    }
+
     return function patch(oldVnode, vnode, hydrating, removeOnly) {
-        if(isUndef(vnode)) {
+        if (isUndef(vnode)) {
             return;
         }
 
         let isInitialPatch = false;
         const insertedVnodeQueue = [];
         if (isUndef(oldVnode)) {
+            isInitialPatch = true
             //暂无
         } else {
             const isRealElement = isDef(oldVnode.nodeType);
@@ -284,7 +353,7 @@ export function createPatchFunction(backend) {
                     //创建一个VNode来取代真实节点
                     oldVnode = emptyNodeAt(oldVnode);
                 }
-                //取代已经存在的元素
+
                 const oldElm = oldVnode.elm;
                 const parentElm = nodeOps.parentNode(oldElm);
                 // 创建新的节点
@@ -299,6 +368,7 @@ export function createPatchFunction(backend) {
             }
         }
 
+        // invokeInsertHook(vnode, insertedVnodeQueue, isInitialPatch)
         return vnode.elm
     }
 }

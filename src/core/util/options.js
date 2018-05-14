@@ -8,13 +8,40 @@ import {
     capitalize,
     isBuiltInTag,
     isPlainObject
-  } from 'shared/util'
+} from 'shared/util'
+
+import {
+    ASSET_TYPES,
+    LIFECYCLE_HOOKS
+} from 'shared/constants'
 
 
 /**
  * 覆盖策略，处理如何合并父组件选项和子组件选项以及参数选项
  */
 const strats = config.optionMergeStrategies
+
+
+
+/**
+ * Hooks and props are merged as arrays.
+ * @param {Array<Function>} parentVal ?
+ * @param {Function|Array<Function>} childVal ?
+ */
+function mergeHook(parentVal, childVal) {
+    return childVal
+        ? parentVal
+            ? parentVal.concat(childVal)
+            : Array.isArray(childVal)
+                ? childVal
+                : [childVal]
+        : parentVal;
+}
+
+LIFECYCLE_HOOKS.forEach( (hook)=> {
+    strats[hook] = mergeHook;
+})
+
 
 
 function mergeData(to, from) {
@@ -156,3 +183,5 @@ export function mergeOptions(parent, child, vm) {
 
     return options;
 }
+
+

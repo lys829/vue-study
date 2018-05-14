@@ -1,6 +1,8 @@
 // import * as all from './element'
 // console.log(all)
 export * from './element.js'
+export * from './class.js'
+
 
 /**
  * 

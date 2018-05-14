@@ -5,7 +5,7 @@ import { createEmptyVNode } from '../vdom/vnode'
 import {
     noop,
 } from '../util/index'
-import { pushTarget } from '../observer/dep';
+import { pushTarget, popTarget } from '../observer/dep';
 
 
 export let activeInstance = null;
@@ -23,8 +23,7 @@ export function mountComponent(vm, el, hydrating) {
     if(!vm.$options.render) {
         vm.$options.render = createEmptyVNode()
     }
-
-    //TODO: beforeMount钩子
+    callHook(vm, 'beforeMount')
 
     let updateComponent = ()=> {
         // vm._render()通过render函数得到一个vnode, vm.update会在将template转化为node节点并绑定到vm.$el
@@ -36,9 +35,11 @@ export function mountComponent(vm, el, hydrating) {
     new Watcher(vm, updateComponent, noop, {},  true); // true >> isRenderWatcher
     hydrating = false;
 
+    //TODO: 为何判断vm.$vnode
     if(vm.$vnode == null) {
         //编辑已经挂载节点完成,这里会触发mouted钩子
         vm._isMounted = true;
+        callHook(vm, 'mounted')
     }
 
     return vm;
@@ -116,4 +117,5 @@ export function callHook(vm, hook) {
     if(vm._hasHookEvent) {
         vm.$emit('hook:' + hook);
     }
+    popTarget()
 }

@@ -1,16 +1,18 @@
 
 import VNode, { createEmptyVNode } from './vnode'
+import { traverse } from '../observer/traverse'
 
 import {
     isPrimitive,
     isTrue,
-    isDef
+    isDef,
+    isObject
 } from '../util/index'
 import config from '../config';
 
 import {
-    normalizeChildren
-    // simpleNormalizeChildren
+    normalizeChildren,
+    simpleNormalizeChildren
   } from './helpers/index'
   
 
@@ -41,12 +43,13 @@ export function createElement(context, tag, data, children, normalizationType, a
  * @param {Number} normalizationType 
  */
 export function _createElement(context, tag, data, children, normalizationType) {
-    // 检测ata是否为 observed data
+    // 检测data是否为 observed data
     if(isDef(data) && isDef(data.__ob__)) {
         console.warn(`Avoid using observed data object as vnode data: ${JSON.stringify(data)}\n` +
         'Always create fresh vnode data objects in each render!',)
         return createEmptyVNode();
     }
+
 
     if(!tag) {
         return createEmptyVNode;
@@ -58,7 +61,7 @@ export function _createElement(context, tag, data, children, normalizationType) 
     if(normalizationType === ALWAYS_NORMALIZE) {
         children = normalizeChildren(children);
     } else {
-        // children = simpleNormalizeChildren(children);
+        children = simpleNormalizeChildren(children);
     }
 
     let vnode, ns;
@@ -76,8 +79,23 @@ export function _createElement(context, tag, data, children, normalizationType) 
     if(Array.isArray(vnode)) {
         return vnode;
     } else if(isDef(vnode)) {
+        if(isDef(data)) {
+            // registerDeepBindings(data)
+        }
         return vnode;
     } else {
         return createEmptyVNode();
+    }
+}
+
+// ref #5318
+// necessary to ensure parent re-render when deep bindings like :style and
+// :class are used on slot nodes
+function registerDeepBindings(data) {
+    if(isObject(data.style)) {
+        traverse(data.style);
+    }
+    if(isObject(data.class)) {
+        traverse(data.class);
     }
 }
