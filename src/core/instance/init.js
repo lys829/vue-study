@@ -26,7 +26,6 @@ export function initMixin(Vue) {
         callHook(vm, 'beforeCreate');
         initState(vm);
         callHook(vm, 'created')
-
         //vm._name = formatComponentName(vm, false);
         if(vm.$options.el) {
             vm.$mount(vm.$options.el);

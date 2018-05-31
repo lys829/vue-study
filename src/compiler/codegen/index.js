@@ -488,11 +488,12 @@ function genProps (props) {
   for (let i = 0; i < props.length; i++) {
     const prop = props[i]
     /* istanbul ignore if */
-    if (__WEEX__) {
-      res += `"${prop.name}":${generateValue(prop.value)},`
-    } else {
-      res += `"${prop.name}":${transformSpecialNewlines(prop.value)},`
-    }
+    // if (__WEEX__) {
+    //   res += `"${prop.name}":${generateValue(prop.value)},`
+    // } else {
+    //   res += `"${prop.name}":${transformSpecialNewlines(prop.value)},`
+    // }
+    res += `"${prop.name}":${transformSpecialNewlines(prop.value)},`
   }
   return res.slice(0, -1)
 }

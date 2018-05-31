@@ -1,5 +1,6 @@
 import config from '../config'
 import { ASSET_TYPES } from 'shared/constants'
+import { initAssetRegisters } from './assets'
 
 export function initGlobalAPI(Vue) {
     const configDef = {};
@@ -12,6 +13,7 @@ export function initGlobalAPI(Vue) {
     ASSET_TYPES.forEach(type => {
         Vue.options[type + 's'] = Object.create(null)
     })
-
     Vue.options._base = Vue;
+
+    // initAssetRegisters(Vue);
 }

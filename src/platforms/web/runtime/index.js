@@ -1,5 +1,6 @@
 import Vue from '../../../core/index'
 import {inBrowser, isChrome} from '../../../core/util/index'
+import { extend, noop } from 'shared/util'
 import { mountComponent } from 'core/instance/lifecycle'
 import { patch } from './patch'
 
@@ -10,15 +11,18 @@ import {
     isReservedAttr
 } from '../util/index'
 
+import platformDirectives from './directives/index'
 
 
 //TODO:  install platform specific utils
-Vue.config.isReservedTag = isReservedTag
-Vue.config.getTagNamespace = getTagNamespace
-Vue.config.isReservedAttr = isReservedAttr
+Vue.config.isReservedTag = isReservedTag;
+Vue.config.getTagNamespace = getTagNamespace;
+Vue.config.isReservedAttr = isReservedAttr;
 
 //TODO: install platform runtime directives & components
+extend(Vue.options.directives, platformDirectives);
 
+// install platform patch function
 Vue.prototype.__patch__ = patch;
 
 /**

@@ -89,7 +89,7 @@ export function withMacroTask (fn) {
 
 export function nextTick (cb, ctx) {
   let _resolve
-  callbacks.push(() => {
+    callbacks.push(() => {
     if (cb) {
       try {
         cb.call(ctx)

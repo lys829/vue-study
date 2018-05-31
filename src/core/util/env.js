@@ -15,6 +15,21 @@ export const isChrome = UA && /chrome\/\d+/.test(UA) && !isEdge
 // Firefox has a "watch" function on Object.prototype...
 export const nativeWatch = ({}).watch;
 
+export let supportsPassive = false
+if (inBrowser) {
+    try {
+        const opts = {}
+        Object.defineProperty(opts, 'passive', {
+            get () {
+                /* istanbul ignore next */
+                supportsPassive = true
+            }
+        });
+        window.addEventListener('test-passive', null, opts)
+    } catch (e) {}
+}
+
+
 export function isNative (Ctor) {
     return typeof Ctor === 'function' && /native code/.test(Ctor.toString())
   }

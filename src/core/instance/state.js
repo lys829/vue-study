@@ -5,6 +5,7 @@ import { pushTarget, popTarget } from '../observer/dep'
 import { observe } from '../observer/index'
 
 import {
+    bind,
     noop,
     isReserved,
     nativeWatch,
@@ -59,7 +60,11 @@ export function stateMixin(Vue) {
 export function initState(vm) {
     vm._watchers = [];
     const opts = vm.$options;
-    //TODO: props methods
+    //TODO: props
+    if(opts.methods) {
+        initMethods(vm, opts.methods);
+    }
+
     if(opts.data) {
         initData(vm);
     } else {
@@ -155,6 +160,13 @@ function createComputedGetter(key) {
             watcher.depend();
             return watcher.evaluate();
         }
+    }
+}
+
+function initMethods(vm, methods) {
+    // const props = vm.$options;
+    for(const key in methods) {
+        vm[key] = methods[key] == null ? noop : bind(methods[key], vm);
     }
 }
 

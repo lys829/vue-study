@@ -90,7 +90,6 @@ export function createPatchFunction(backend) {
         if (isDef(tag)) {
             // NOTE: 未考虑SVG元素
             vnode.elm = nodeOps.createElement(tag, vnode);
-
             createChildren(vnode, children, insertedVnodeQueue);
             if (isDef(data)) {
                 invokeCreateHooks(vnode, insertedVnodeQueue);
@@ -217,7 +216,7 @@ export function createPatchFunction(backend) {
             } else if (isUndef(oldEndVnode)) {
                 oldEndVnode = oldCh[--oldEndIdx];
             } else if (sameVnode(oldStartVnode, newStartVnode)) {
-                console.log('1.oldStartVnode === newStartVnode', oldStartIdx, newStartIdx, oldEndIdx, newEndIdx)
+                console.log('1.oldStartVnode === newStartVnode')
                 patchVnode(oldStartVnode, newStartVnode, insertedVnodeQueue);
                 oldStartVnode = oldCh[++oldStartIdx];
                 newStartVnode = newCh[++newStartIdx];

@@ -4,7 +4,7 @@ export const emptyObject = Object.freeze({})
 
 // these helpers produces better vm code in JS engines due to their
 // explicitness and function inlining
-export function isUndef (v: any): boolean %checks {
+export function isUndef (v) {
   return v === undefined || v === null
 }
 
@@ -207,10 +207,10 @@ export const bind = Function.prototype.bind
 /**
  * Convert an Array-like object to a real Array.
  */
-export function toArray (list: any, start?: number): Array<any> {
+export function toArray (list, start){
   start = start || 0
   let i = list.length - start
-  const ret: Array<any> = new Array(i)
+  const ret = new Array(i)
   while (i--) {
     ret[i] = list[i + start]
   }

@@ -116,6 +116,17 @@ strats.data = function(parentVal, childVal, vm) {
     return mergeDataOrFn(parentVal, childVal, vm);
 }
 
+strats.methods = function (parentVal, childVal, vm, key) { 
+    if(!parentVal) {
+        return childVal;
+    }
+    const ret = Object.create(null);
+    extend(ret, parentVal);
+    if(childVal) {
+        extend(ret, childVal);
+    }
+    return ret;
+}
 
 const defaultStrat = function(parentVal, childVal) {
     return childVal === undefined ? parentVal : childVal
@@ -143,6 +154,17 @@ function normalizeProps(options, vm) {
     options.props = res;
 }
 
+function normalizeDirectives(options) {
+    const dirs = options.directives;
+    if(dirs) {
+        for(const key in dirs) {
+            const def = dirs[key];
+            if(typeof def === 'function') {
+                dirs[key] = {bind: def, update: def};
+            }
+        }
+    }
+}
 
 /**
  * vm没有parent时, parent为构造函数Vue的options选项
@@ -159,6 +181,7 @@ export function mergeOptions(parent, child, vm) {
 
     //规范化参数
     //TODO: normalize
+    normalizeDirectives(child);
 
     //TODO: extend
 
@@ -185,3 +208,25 @@ export function mergeOptions(parent, child, vm) {
 }
 
 
+export function resolveAsset(options, type, id, warnMissing) {
+    if(typeof id !== 'string') {
+        return;
+    }
+
+    const assets = options[type];
+    if(hasOwn(assets, id)) {
+        return assets[id];
+    }
+
+    const camelizedId = camelize(id);
+    if(hasOwn(assets, camelizedId)) {
+        return assets[camelizedId];
+    }
+
+    const PascalCaseId = capitalize(camelizedId);
+    if(hasOwn(assets, PascalCaseId)) {
+        return assets[PascalCaseId]
+    }
+    const res = assets[id] || assets[camelizedId] || assets[PascalCaseId];
+    return res;
+}
