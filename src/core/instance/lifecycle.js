@@ -1,9 +1,12 @@
 
 import Watcher from '../observer/watcher'
 import { createEmptyVNode } from '../vdom/vnode'
+import { toggleObserving } from '../observer/index'
 
 import {
     noop,
+    emptyObject,
+    validateProp
 } from '../util/index'
 import { pushTarget, popTarget } from '../observer/dep';
 
@@ -19,7 +22,6 @@ export let activeInstance = null;
  */
 export function mountComponent(vm, el, hydrating) {
     vm.$el = el;
-
     if(!vm.$options.render) {
         vm.$options.render = createEmptyVNode()
     }
@@ -37,12 +39,44 @@ export function mountComponent(vm, el, hydrating) {
 
     //TODO: 为何判断vm.$vnode
     if(vm.$vnode == null) {
-        //编辑已经挂载节点完成,这里会触发mouted钩子
+        //编辑已经挂载节点完成,这里会触发mounted钩子
         vm._isMounted = true;
         callHook(vm, 'mounted')
     }
 
     return vm;
+}
+
+
+
+export function updateChildComponent(vm, propsData, listeners, parentVnode, renderChildren) {
+
+    // TODO: hasChildren 作用
+    vm.$options._parentVnode = parentVnode;
+    vm.$vnode = parentVnode //update vm's placeholder node without re-render
+    if(vm._vnode) { // _vnode为vm的render函数生成的vnode
+        vm._vnode.parent = parentVnode
+    }
+
+    vm.$options._renderChildren = renderChildren
+
+    // TODO: 这里改变会触发响应 参考render.js中的initRender 未知作用
+    // vm.$attrs = parentVnode.data.attrs || emptyObject;
+    // vm.$listeners = listeners || emptyObject;
+
+    // update props
+    if(propsData && vm.$options.props) {
+        toggleObserving(false)
+        const props = vm._props;
+        const propKeys = vm.$options._propKeys || [];
+        for (let i = 0; i < propKeys.length; i++) {
+            const key = propKeys[i];
+            const propOptions = vm.$options.props
+            props[key] = validateProp(key, propOptions, propsData, vm)
+        }
+        toggleObserving(true)
+        vm.$options.propsData = propsData;
+    }
 }
 
 /**
@@ -76,7 +110,7 @@ export function lifecycleMixin(Vue) {
 
         activeInstance = vm;
         vm._vnode = vnode;
-        
+
         if(!prevVnode) {
             //初始化渲染 替换$el
             vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false); //false >> removeOnly

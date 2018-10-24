@@ -79,9 +79,9 @@ export function createPatchFunction(backend) {
     let creatingElmInVPre = 0;
     function createElm(vnode, insertedVnodeQueue, parentElm, refElm, nested, ownerArray, index) {
 
-        /* if(createComponent(vnode, insertedVnodeQueue, parentElm, refElm)) {
+         if(createComponent(vnode, insertedVnodeQueue, parentElm, refElm)) {
             return;
-        } */
+        }
 
         const data = vnode.data;
         const children = vnode.children;
@@ -110,10 +110,29 @@ export function createPatchFunction(backend) {
     function createComponent(vnode, insertedVnodeQueue, parentElm, refElm) {
         let i = vnode.data;
         if (isDef(i)) {
-            const isReactivated = isDef(vnode.componentInstance) && i.keepAlive;
+            // const isReactivated = isDef(vnode.componentInstance) && i.keepAlive;
+            const isReactivated = isDef(vnode.componentInstance);
             if (isDef(i = i.hook) && isDef(i = i.init)) {
+                // 初始化 调用componentVNodeHooks.init -> create-component.js
                 i(vnode, false /* hydrating */);
             }
+            if(isDef(vnode.componentInstance)) {
+                initComponent(vnode, insertedVnodeQueue);
+                insert(parentElm, vnode.elm, refElm);
+                return true;
+            }
+        }
+    }
+
+    function initComponent(vnode, insertedVnodeQueue) {
+        //TODO: pendingInsert
+
+        vnode.elm = vnode.componentInstance.$el;
+        if(isPatchable(vnode)) {
+            invokeCreateHooks(vnode, insertedVnodeQueue);
+            // TODO: setScope();
+        } else {
+            //TODO:
         }
     }
 
@@ -179,7 +198,10 @@ export function createPatchFunction(backend) {
         }
         i = vnode.data.hook;
         if (isDef(i)) {
-
+            if(isDef(i.insert)) {
+                // component有insert钩子
+                insertedVnodeQueue.push(vnode);
+            }
         }
     }
 
@@ -289,7 +311,8 @@ export function createPatchFunction(backend) {
 
         let i;
         const data = vnode.data;
-        if (isDef(data) && isDef(i = data.hook) && isDef(i = i.preatch)) {
+        if (isDef(data) && isDef(i = data.hook) && isDef(i = i.prepatch)) {
+            // component有prepatch钩子
             i(oldVnode, vnode);
         }
 
@@ -333,16 +356,17 @@ export function createPatchFunction(backend) {
         if (isUndef(vnode)) {
             return;
         }
-
         let isInitialPatch = false;
         const insertedVnodeQueue = [];
         if (isUndef(oldVnode)) {
             isInitialPatch = true
+            createElm(vnode, insertedVnodeQueue)
             //暂无
         } else {
             const isRealElement = isDef(oldVnode.nodeType);
             if (!isRealElement && sameVnode(oldVnode, vnode)) {
-                //patch 已经存在的根节点
+                // patch 已经存在的根节点
+                // 当vnode存在更新时会触发
                 patchVnode(oldVnode, vnode, insertedVnodeQueue, removeOnly)
             } else {
                 if (isRealElement) {

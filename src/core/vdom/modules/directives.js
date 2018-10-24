@@ -23,7 +23,6 @@ function _update(oldVnode, vnode) {
     const isDestroy = vnode === emptyNode;
     const oldDirs = normalizeDirectives(oldVnode.data.directives, oldVnode.context);
     const newDirs = normalizeDirectives(vnode.data.directives, vnode.context);
-
     const dirsWithInsert = [];
     const dirsWithPostpatch = [];
     /**

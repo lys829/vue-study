@@ -72,6 +72,7 @@ function mergeData(to, from) {
 export function mergeDataOrFn(parentVal, childVal, vm) {
     if(!vm) {
         //in a Vue.extend merge, both should be functions
+        // Vue.extend 子组件选项
         if(!childVal) {
             return parentVal;
         }
@@ -130,10 +131,36 @@ strats.methods = function (parentVal, childVal, vm, key) {
 
 const defaultStrat = function(parentVal, childVal) {
     return childVal === undefined ? parentVal : childVal
+};
+
+/**
+ * 如果存在childVal, childVal会覆盖parentVal的属性访问
+ * @param parentVal
+ * @param childVal
+ * @param vm
+ * @param key
+ * @returns {*}
+ */
+function mergeAssets(parentVal, childVal, vm, key) {
+    const res = Object.create(parentVal);
+    if(childVal) {
+        console.log('merge', res, childVal)
+        return extend(res, childVal);
+    } else {
+        return res;
+    }
 }
+
+ASSET_TYPES.forEach(function (type) {
+    strats[type + 's'] = mergeAssets;
+});
 
 //TODO: 策略合并的限制
 
+/**
+ * Ensure all props option syntax are normalized into the
+ * Object-based format.
+ */
 function normalizeProps(options, vm) {
     const props = options.props;
     if(!props) {
@@ -150,7 +177,7 @@ function normalizeProps(options, vm) {
                 res[name] = {type: null};
             }
         }
-    } 
+    }
     options.props = res;
 }
 
@@ -178,6 +205,8 @@ export function mergeOptions(parent, child, vm) {
     if(typeof child === 'function') {
         child = child.options;
     }
+
+    normalizeProps(child, vm);
 
     //规范化参数
     //TODO: normalize

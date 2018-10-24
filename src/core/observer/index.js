@@ -29,7 +29,7 @@ export function toggleObserving(value) {
 export class Observer {
     constructor(value) {
         this.value = value;
-        this.dep = new Dep(`observer ${value.toString()}`);
+        this.dep = new Dep(`observer keys: ${Object.keys(value).join(',').toString()}`);
         this.vmCount = 0;
         //将Observer实例绑定到data到__ob__,在observer函数中会检测data对象是否包含Observer实例
         //__ob__不可枚举
@@ -105,7 +105,6 @@ export function observe(value, asRootData) {
  */
 export function defineReactive(obj, key, val, customSetter, shallow) {
     const dep = new Dep(key);
-    
     const property = Object.getOwnPropertyDescriptor(obj, key);
     if(property && property.configurable === false) {
         return;
@@ -119,19 +118,20 @@ export function defineReactive(obj, key, val, customSetter, shallow) {
         val = obj[key];
     }
     //NOTE: 多层结构 childOb如果存在，为Observe实例
+    // val是undefined 不会深度观测
     let childOb = !shallow && observe(val);
-    
+
     Object.defineProperty(obj, key, {
         enumerable: true,
         configurable: true,
         get: function reactiveGetter() {
             const value = getter ? getter.call(obj) : val;
-            if(Dep.target){ 
+            if(Dep.target){
                 dep.depend();
-                
                 if(childOb) {
+                    //这里收集的依赖会在Vue.set()时释放
                     childOb.dep.depend();
-                    //NOTE: 未知作用，先注释, 可能和Vue.set方法有关
+                    //TODO: 未知作用，先注释, 可能和Vue.set方法有关
                     /* if(Array.isArray(value)) {
                         dependArray(value);
                     } */
@@ -142,7 +142,7 @@ export function defineReactive(obj, key, val, customSetter, shallow) {
 
         set: function reactiveSetter(newVal) {
             const value = getter ? getter.call(obj) : val;
-            if(newVal === value || (newVal !== newVal && value !== value)) {
+            if(newVal === value || (newVal !== newVal && value !== value)) { // NaN !== NaN
                 return;
             }
             if(setter) {
@@ -165,4 +165,38 @@ function dependArray(value) {
             dependArray(e);
         }
     }
+}
+
+/**
+ * Set a property on an object. Adds the new property and
+ * triggers change notification if the property doesn't
+ * already exist.
+ * @param target {Object}
+ * @param key {}
+ * @param val {}
+ */
+export function set(target, key, val) {
+    //TODO: 判断条件
+
+    const ob = target.__ob__;
+    if(target._isVue || (ob && ob.vmCount)) {
+        console.warn('Avoid adding reactive properties to a Vue instance or its root $data ' +
+            'at runtime - declare it upfront in the data option.');
+        return val;
+    }
+
+    if(Array.isArray(target) && isValidArrayIndex(key)) {
+        target.length = Math.max(target.length, key);
+        target.splice(key, 1, val);
+        return;
+    }
+
+    if(!ob) {
+        target[key] = val;
+        return val;
+    }
+
+    defineReactive(ob.value, key, val);
+    ob.dep.notify();
+    return val;
 }

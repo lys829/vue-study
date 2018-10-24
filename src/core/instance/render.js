@@ -1,4 +1,13 @@
 
+import {
+    warn,
+    nextTick,
+    emptyObject,
+    // handleError,
+} from '../util/index'
+
+import { defineReactive } from '../observer/index'
+
 import { installRenderHelpers } from './render-helpers/index'
 import VNode, { createEmptyVNode } from '../vdom/vnode'
 import { createElement } from '../vdom/create-element'
@@ -12,9 +21,12 @@ export function initRender(vm) {
     vm._staticTress = null; // v-once cached trees
     const options = vm.$options;
     //此时options._parentVnode为undefined
+    const parentVnode = vm.$vnode = options._parentVnode
+    const renderContext = parentVnode && parentVnode.context;
 
     //TODO: $slots处理
 
+    const parentData = parentVnode && parentVnode.data;
 
     /**
      * 在实例上绑定createElement函数
@@ -28,13 +40,18 @@ export function initRender(vm) {
     //规范化(alwaysNormalize)适用于发行版本, 在用户提供的render functions 中使用
     vm.$createElement = (a, b, c, d) => createElement(vm, a, b, c, d, true);
 
-    //TODO:在vm上定义响应属性 $attrs, $listeners
+    //在vm上定义响应属性 $attrs, $listeners
+    // defineReactive(vm, '$attrs', parentData && parentData.attrs || emptyObject, null, true)
+    // defineReactive(vm, '$listeners', options._parentListeners || emptyObject, null, true)
+
 }
 
 export function renderMixin(Vue) {
     installRenderHelpers(Vue.prototype)
 
-    Vue.prototype.$nextTick = function(fn) {}
+    Vue.prototype.$nextTick = function(fn) {
+        return nextTick(fn, this);
+    };
     Vue.prototype._render = function() {
         const vm = this;
         //render在web平台入口文件(web/entry-runtime-with-compiler.js)中定义

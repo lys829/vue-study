@@ -39,7 +39,6 @@ function updateDOMListeners(oldVnode, vnode) {
     if(isUndef(oldVnode.data.on) && isUndef(vnode.data.on)){
         return;
     }
-
     const on = vnode.data.on || {};
     const oldOn = oldVnode.data.on || {};
     target = vnode.elm;

@@ -188,6 +188,7 @@ export function parseHTML (html, options) {
 
   function parseStartTag () {
     const start = html.match(startTagOpen)
+      console.log(index)
     if (start) {
       const match = {
         tagName: start[1],

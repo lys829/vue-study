@@ -68,6 +68,7 @@ Vue.use = (plugin: Function | Object)=> {}
 Vue.mixin = (mixin: Object)=> {}
 Vue.extend = (extendOptions: Object)=> {}
 
+//initAssetRegisters
 Vue.component = (){}
 Vue.directive = (){}
 Vue.filter = (){}

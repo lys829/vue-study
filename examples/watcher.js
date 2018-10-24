@@ -9,7 +9,7 @@ export default function init(el) {
                 n: 'n'
             }
         },
-        template: '<div><span>{{a}}</span><p>{{b}}</p><i>{{o.n}}</i></div>',
+        template: '<div><span>a: {{a}}</span><p>computed b: {{b}}</p><i>{{o.n}}</i></div>',
         computed: {
             b: function () {
                 const res = this.a + 2;
@@ -24,7 +24,7 @@ export default function init(el) {
     })
     
     setTimeout(()=> {
-        vm.a = 6
+        // vm.a = 6
         vm.o = {n : 'test'}
         console.log('computed b: ', vm.b);
     }, 2000)

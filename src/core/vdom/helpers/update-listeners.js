@@ -18,7 +18,6 @@ const normalizeEvent = cached((name)=> {
 
 export function updateListeners(on, oldOn, add, remove, vm) {
     let name, def, cur, old, event;
-
     for(name in on) {
         def = cur = on[name];
         old = oldOn[name];

@@ -45,7 +45,7 @@ const targetStack = []
  */
 export function pushTarget(_target) {
     if(Dep.target) {
-        console.log('已经存在 Dep.target', Dep.target)
+        // console.log('已经存在 Dep.target', Dep.target, '参数：', _target)
         targetStack.push(Dep.target);
     }
     Dep.target = _target;

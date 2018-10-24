@@ -2,14 +2,21 @@
 import Watcher from '../observer/watcher'
 import { pushTarget, popTarget } from '../observer/dep'
 
-import { observe } from '../observer/index'
+import {
+    // set,
+    // del,
+    observe,
+    defineReactive,
+    toggleObserving
+} from '../observer/index'
 
 import {
     bind,
     noop,
     isReserved,
     nativeWatch,
-    isPlainObject
+    isPlainObject,
+    validateProp
 } from '../util/index'
 
 const sharedPropertyDefinition = {
@@ -34,13 +41,15 @@ export function stateMixin(Vue) {
     const dataDef = {};
     dataDef.get = function () {
         return this._data;
-    }
+    };
     const propsDef = {};
     propsDef.get = function () {
         return this._props;
-    }
+    };
     Object.defineProperty(Vue.prototype, '$data', dataDef);
     Object.defineProperty(Vue.prototype, '$props', dataDef);
+
+    //TODO: set del
 
     Vue.prototype.$watch = function(expOrFn, cb, options={}) {
         const vm = this;
@@ -49,7 +58,7 @@ export function stateMixin(Vue) {
         if(options.immediate) {
             cb.call(vm, watcher.value);
         }
-        //TODO:未知
+        //解除观察者与属性之间的关系
         return function unwatchFn() {
             watcher.teardown();
         }
@@ -60,7 +69,10 @@ export function stateMixin(Vue) {
 export function initState(vm) {
     vm._watchers = [];
     const opts = vm.$options;
-    //TODO: props
+    if(opts.props) {
+        initProps(vm, opts.props);
+    }
+
     if(opts.methods) {
         initMethods(vm, opts.methods);
     }
@@ -76,6 +88,30 @@ export function initState(vm) {
     }
     if(opts.watch && opts.watch !== nativeWatch) {
         initWatch(vm, opts.watch);
+    }
+}
+
+function initProps(vm, propsOptions) {
+    const propsData = vm.$options.propsData || {};
+    const props = vm._props = {};
+
+    const keys = vm.$options._propKeys = [];
+    const isRoot = !vm.$parent
+
+    if(!isRoot) {
+
+    }
+    for(const key in propsOptions) {
+        keys.push(key)
+        const value = validateProp(key, propsOptions, propsData, vm);
+
+        defineReactive(props, key, value);
+
+        // 创建的组件实例, key已经绑定到组件的原型属性_props上, 参考extends.js initProps
+        if(!(key in vm)) {
+            // 代理props的属性访问
+            proxy(vm, `_props`, key);
+        }
     }
 }
 
@@ -127,7 +163,7 @@ function initComputed(vm, computed) {
         const getter = typeof userDef === 'function' ? userDef : userDef.get;
 
         //为计算属性绑定内部watcher
-        watchers[key] = new Watcher(vm, getter, noop, computedWatcherOptions);
+        watchers[key] = new Watcher(vm, getter || noop, noop, computedWatcherOptions);
 
         if(!(key in vm)) {
             defineComputed(vm, key, userDef);
@@ -185,6 +221,9 @@ function createWatcher(vm, expOrFn, handler, options) {
     if(isPlainObject(handler)) {
         options = handler;
         handler = handler.handler;
+    }
+    if(typeof handler === 'string') {
+        handler = vm[handler]
     }
 
     return vm.$watch(expOrFn, handler, options)

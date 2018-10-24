@@ -1,12 +1,14 @@
 
 import VNode, { createEmptyVNode } from './vnode'
 import { traverse } from '../observer/traverse'
+import { createComponent } from './create-component'
 
 import {
     isPrimitive,
     isTrue,
     isDef,
-    isObject
+    isObject,
+    resolveAsset
 } from '../util/index'
 import config from '../config';
 
@@ -20,7 +22,7 @@ const SIMPLE_NORMALIZE = 1
 const ALWAYS_NORMALIZE = 2
 
 export function createElement(context, tag, data, children, normalizationType, alwaysNormalize) {
-    console.log('createElement: >> ', tag, data, children, normalizationType, alwaysNormalize)
+    console.log('createElement: >> ', tag, data, children, normalizationType, 'alwaysNormalize: ', alwaysNormalize)
     //兼容参数差异
     if (Array.isArray(data) || isPrimitive(data)) {
         normalizationType = children;
@@ -66,15 +68,20 @@ export function _createElement(context, tag, data, children, normalizationType) 
 
     let vnode, ns;
     if (typeof tag === 'string') {
-        let Ctor
+        let Ctor;
         ns = config.getTagNamespace(tag);
         if (config.isReservedTag(tag)) {
             // vnode = new VNode(config.parsePlatformTagName(tag), data, children, undefined, undefined, context);
             //只针对web平台
             vnode = new VNode(tag, data, children, undefined, undefined, context);
+        } else if(isDef(Ctor = resolveAsset(context.$options, 'components', tag))) {
+            // component
+            // Ctor为注册过的组件, 有局部注册和全局注册两种情况
+            vnode = createComponent(Ctor, data, context, children, tag)
         }
     } else {
-
+        // direct component options / constructor
+        vnode = createComponent(tag, data, context, children)
     }
     if (Array.isArray(vnode)) {
         return vnode;

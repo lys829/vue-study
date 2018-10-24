@@ -224,7 +224,7 @@ export function parse (
     end () {
       // remove trailing whitespace
       const element = stack[stack.length - 1]
-      const lastNode = element.children[element.children.length - 1]
+        const lastNode = element.children[element.children.length - 1]
       if (lastNode && lastNode.type === 3 && lastNode.text === ' ' && !inPre) {
         element.children.pop()
       }
@@ -234,7 +234,7 @@ export function parse (
       closeElement(element)
     },
 
-    chars (text: string) {
+    chars (text) {
       if (!currentParent) {
         if (process.env.NODE_ENV !== 'production') {
           if (text === template) {

@@ -15,7 +15,7 @@ export default class Watch {
     constructor(vm, expOrFn, cb, options, isRenderWatcher) {
         this.vm = vm; 
         if(isRenderWatcher) {
-            // 如果是是挂载节点是绑定的watcher,则将该watcher绑定到vm的_watcher属性上
+            // 渲染函数的观察者,则将该watcher绑定到vm的_watcher属性上
             vm._watcher = this;
         }
         //收集watcher
@@ -46,7 +46,6 @@ export default class Watch {
             this.getter = parsePath(expOrFn);
             
         }
-
         if(this.computed) {
             this.value = undefined;
             this.dep = new Dep('computed');
@@ -55,7 +54,7 @@ export default class Watch {
              * 1. 赋值value
              * 2. watcher添加到依赖对象的subs列表
              */
-            this.value = this.get();  
+            this.value = this.get();
         }
     }
 
@@ -85,9 +84,11 @@ export default class Watch {
      */
     addDep(dep) {
         const id = dep.id;
+        // 一次求值过程中, 触发了多次get拦截器,从而观察者被收集多次
         if(!this.newDepIds.has(id)) {
             this.newDepIds.add(id);
             this.newDeps.push(dep);
+            // 避免多次求值搜集重复依赖, 如数据变化时
             if(!this.depIds.has(id)) {
                 dep.addSub(this);
             }
@@ -129,6 +130,8 @@ export default class Watch {
                     this.dep.notify();
                 })
             }
+        } else if (this.sync) {
+            this.run()
         } else {
             console.log('加入任务队列');
             queueWatcher(this)
@@ -193,7 +196,12 @@ export default class Watch {
      */
     teardown() {
         if(this.active) {
-            //TODO: destroyed
+            // remove self from vm's watcher list
+            // this is a somewhat expensive operation so we skip it
+            // if the vm is being destroyed.
+            if(!this.vm._isBeingDestroyed) {
+                remove(this.vm._watchers, this);
+            }
 
             let i = this.deps.length;
             while(i--) {

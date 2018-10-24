@@ -41,6 +41,7 @@ export function queueWatcher(watcher) {
         if(!flushing) {
             queue.push(watcher);
         }else {
+            // 计算属性观察者可能在队列开始更新的时候加入
             let i = queue.length - 1;
             while( i > index && queue[i].id > watcher.id) {
                 i--;

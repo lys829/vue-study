@@ -4,15 +4,9 @@ export default function init(el) {
     const vm = new Vue({
         el: el,
         data: {
-            a: 1,
-            b: ['a', 'b', 'v'],
-            list: [{val: 1}, {val: 2}],
-            obj: {
-                c: 5,
-                b: 6
-            }
+            b: ['a', 'b', 'v']
         },
-        template: '<div><span v-for="value in b">{{value}}</span><ul><li v-for="l in obj">{{l}}</li></ul></div>'
+        template: '<div><span v-for="value in b">{{value}}</span></div>'
     })
 
     setTimeout(()=> {
@@ -26,6 +20,8 @@ export default function init(el) {
         // vm.list[0] = {val: 4}
 
         // vm.obj.c = 7
+
+        vm.b[0] = '1'
     }, 1000)
 
 }
