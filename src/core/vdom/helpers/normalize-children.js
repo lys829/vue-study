@@ -45,7 +45,7 @@ function normalizeArrayChildren(children, nestedIndex) {
         if(Array.isArray(c)) {
             if(c.length > 0) {
                 c = normalizeArrayChildren(c, `${nestedIndex || ''}_${i}`);
-                // merge adjacent text nodes(合并相邻的文本节点<div{aaaa}{cccc}></div>)
+                // merge adjacent text nodes(合并相邻的文本节点<div>{aaaa}{cccc}</div>)
                 /* if(isTextNode(c[0]) && isTextNode(last)) {
                     res[lastIndex] = createTextVNode(last.text + (c[0].text))
                     c.shift();

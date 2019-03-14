@@ -4,7 +4,7 @@ import { cached, extend, toObject } from 'shared/util'
 
 export const parseStyleText = cached(function (cssText) {
   const res = {}
-  const listDelimiter = /;(?![^(]*\))/g
+  const listDelimiter = /;(?![^(]*\))/g //正向否定查找  ;后面只能出现(和其他多个字符并且以)结尾
   const propertyDelimiter = /:(.+)/
   cssText.split(listDelimiter).forEach(function (item) {
     if (item) {

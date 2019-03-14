@@ -39,7 +39,7 @@ export function createElement(context, tag, data, children, normalizationType, a
 /**
  * 
  * @param {Component} context 
- * @param {Stirng} tag ?
+ * @param {String| Component | Function | Object } string -> tag ?
  * @param {data} VNodeData ? 
  * @param {*} children 
  * @param {Number} normalizationType 

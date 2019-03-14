@@ -6,6 +6,7 @@ import {
     handleError
 } from '../util/index'
 
+import { traverse } from './traverse'
 import {queueWatcher} from './scheduler'
 import Dep, { pushTarget, popTarget } from './dep'
 
@@ -21,23 +22,24 @@ export default class Watch {
         //收集watcher
         vm._watchers.push(this);
         if(options) {
-            this.computed = !!options.computed;
-            this.user = !!options.user;
+            this.deep = !!options.deep; //当前观察者实例对象是否是深度观测
+            this.user = !!options.user; //标识当前观察者实例对象是 开发者定义的 还是 内部定义的
+            this.lazy = !!options.lazy;
+            this.sync = !!options.sync; //告诉观察者当数据变化时是否同步求值并执行回调
         } else {
-            this.deep = this.user = this.computed = this.sync = false;
+            this.deep = this.user = this.lazy = this.sync = false;
         }
 
-        //TODO: 完善
         this.cb = cb;
         this.id = ++uid;
         this.active = true;
         //针对计算属性的watcher,如果为false，直接返回this.value,避免再次调用this.get()
-        this.dirty = this.computed; 
+        this.dirty = this.lazy;
         this.deps = [];
         this.newDeps = [];
         this.depIds = new Set();
         this.newDepIds = new Set();
-        this.expression = '';
+        this.expression = expOrFn.toString();
    
         if(typeof expOrFn === 'function') {
             this.getter = expOrFn;
@@ -46,21 +48,12 @@ export default class Watch {
             this.getter = parsePath(expOrFn);
             
         }
-        if(this.computed) {
-            this.value = undefined;
-            this.dep = new Dep('computed');
-        } else {
-            /**
-             * 1. 赋值value
-             * 2. watcher添加到依赖对象的subs列表
-             */
-            this.value = this.get();
-        }
+        this.value = this.lazy ? undefined : this.get();
     }
 
     /**
      * 1.computed第一次求值和依赖的值改变时触发
-     * 2.data 两种情况: 初始化时触发, 改变data的属性时触发
+     * 2.初始化时触发  改变data的属性时触发
      */
     get() {
         pushTarget(this);
@@ -71,6 +64,9 @@ export default class Watch {
         } catch(e) {
             console.error(e);
         } finally {
+            if (this.deep) {
+                traverse(value)
+            }
             popTarget();
             this.cleanupDeps();
         }
@@ -84,11 +80,11 @@ export default class Watch {
      */
     addDep(dep) {
         const id = dep.id;
-        // 一次求值过程中, 触发了多次get拦截器,从而观察者被收集多次
+        // 在某一次求值过程中, 触发了多次get拦截器,从而观察者被收集多次
         if(!this.newDepIds.has(id)) {
             this.newDepIds.add(id);
             this.newDeps.push(dep);
-            // 避免多次求值搜集重复依赖, 如数据变化时
+            // 避免值改变时(数据变化)搜集重复依赖
             if(!this.depIds.has(id)) {
                 dep.addSub(this);
             }
@@ -114,22 +110,8 @@ export default class Watch {
     }
 
     update() {
-        if(this.computed) {
-            // 计算属性有两种模式: lazy和activated
-            // 初始化默认是lazy,当只是一个订阅者依赖时才会被激活,这个订阅者通常是另一个计算属性或组件的render函数中
-            if(this.dep.subs.length === 0) {
-                // 在lazy模式下, 通过dirty来实现只要在必要的时候才重新计算值
-                //当访问计算属性时, 是通过this.evaluate()方法来计算
-                
-                // 当依赖属性改变时,设置this.dirty为true,下次访问computed属性时,会重新计算
-                this.dirty = true;
-            } else {
-                // activated模式下, 会主动计算, 当然只会在值发生了真正改变的时候才通知订阅者
-                this.getAndInvoke(()=> {
-                    // TODO: 暂不知作用
-                    this.dep.notify();
-                })
-            }
+        if(this.lazy) {
+            this.dirty = true;
         } else if (this.sync) {
             this.run()
         } else {
@@ -141,31 +123,24 @@ export default class Watch {
     // 调度任务中用到的接口
     run() {
         if(this.active) {
-            console.log('%c 从任务队列里面调用', 'color: green');
-            this.getAndInvoke(this.cb);
-        }
-    }
+            const value = this.get();
+            if(
+                value !== this.value ||
+                    isObject(value) ||
+                    this.deep
+            ) {
+                //set new value
+                const oldValue = this.value;
+                this.value = value;
+                if(this.user) {
+                    try {
+                        this.cb.call(this.vm, value, oldValue)
+                    }catch (e) {
 
-    getAndInvoke(cb) {
-        const value = this.get();
-        console.log('running watcher value >>', this.computed, value, this.value);
-        /**
-         * 1. 当computed属性(b)依赖的值(a)改变时, 再次求值时, 会触发条件value !== this.value
-         */
-        if(value !== this.value || isObject(value) || this.deep) { //this.deep暂不考虑
-            //设置新的值
-            const oldValue = this.value;
-            this.value = value;
-            this.dirty = false;
-            
-            if(this.user) {
-                try {
-                    cb.call(this.vm, value, oldValue);
-                } catch (e) {
-                    //TODO:error处理
+                    }
+                } else {
+                    this.cb.call(this.vm, value, oldValue);
                 }
-            } else {
-                cb.call(this.vm, value, oldValue);
             }
         }
     }
@@ -174,11 +149,8 @@ export default class Watch {
      * 此求值方法值针对计算属性
      */
     evaluate() {
-        if(this.dirty) {
-            this.value = this.get();
-            this.dirty = false;
-        }
-        return this.value;
+        this.value = this.get();
+        this.dirty = false;
     }
 
     /**
@@ -186,28 +158,29 @@ export default class Watch {
      * 
      */
     depend() {
-        if(this.dep && Dep.target) {
-            this.dep.depend();
+        let i = this.deps.length;
+        while (i--) {
+            this.deps[i].depend();
         }
     }
 
+
     /**
-     * 移除依赖对象的订阅列表
+     * Remove self from all dependencies' subscriber list.
      */
-    teardown() {
-        if(this.active) {
+    teardown () {
+        if (this.active) {
             // remove self from vm's watcher list
             // this is a somewhat expensive operation so we skip it
             // if the vm is being destroyed.
-            if(!this.vm._isBeingDestroyed) {
-                remove(this.vm._watchers, this);
+            if (!this.vm._isBeingDestroyed) {
+                remove(this.vm._watchers, this)
             }
-
-            let i = this.deps.length;
-            while(i--) {
-                this.deps[i].removeSub(this);
+            let i = this.deps.length
+            while (i--) {
+                this.deps[i].removeSub(this)
             }
-            this.active = false;
+            this.active = false
         }
     }
 }

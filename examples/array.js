@@ -4,9 +4,9 @@ export default function init(el) {
     const vm = new Vue({
         el: el,
         data: {
-            b: ['a', 'b', 'v']
+            o: [{v: 1}]
         },
-        template: '<div><span v-for="value in b">{{value}}</span></div>'
+        template: '<div><span v-for="value in o">{{value.v}}</span><p>{{o}}</p></div>'
     })
 
     setTimeout(()=> {
@@ -21,7 +21,9 @@ export default function init(el) {
 
         // vm.obj.c = 7
 
-        vm.b[0] = '1'
+        vm.$set(vm.o[0], 'c', 5);
+
+        // vm.$set(vm.o[0], 'v', 5)
     }, 1000)
 
 }

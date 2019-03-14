@@ -10,11 +10,12 @@ let pending = false
 
 function flushCallbacks () {
   pending = false
-  const copies = callbacks.slice(0)
+  const copies = callbacks.slice(0);
+  callbacks.length = 0
   for (let i = 0; i < copies.length; i++) {
-    copies[i]()
+      copies[i]()
   }
-    callbacks.length = 0
+
 }
 
 // Here we have async deferring wrappers using both microtasks and (macro) tasks.

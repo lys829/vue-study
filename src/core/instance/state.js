@@ -1,9 +1,9 @@
 
 import Watcher from '../observer/watcher'
-import { pushTarget, popTarget } from '../observer/dep'
+import Dep, { pushTarget, popTarget } from '../observer/dep'
 
 import {
-    // set,
+    set,
     // del,
     observe,
     defineReactive,
@@ -50,6 +50,7 @@ export function stateMixin(Vue) {
     Object.defineProperty(Vue.prototype, '$props', dataDef);
 
     //TODO: set del
+    Vue.prototype.$set = set;
 
     Vue.prototype.$watch = function(expOrFn, cb, options={}) {
         const vm = this;
@@ -67,6 +68,7 @@ export function stateMixin(Vue) {
 
 
 export function initState(vm) {
+    // 存储所有该组件实例的 watcher对象
     vm._watchers = [];
     const opts = vm.$options;
     if(opts.props) {
@@ -117,6 +119,8 @@ function initProps(vm, propsOptions) {
 
 function initData(vm) {
     let data = vm.$options.data;
+    // beforeCreate 生命周期钩子函数是在 mergeOptions 函数之后 initData 之前被调用的,
+    // 可能在beforeCreate 生命周期钩子函数中修改了 vm.$options.data 的值
     data = vm._data = typeof data === 'function' ? getData(data, vm) : data ||{};
 
     // proxy data on instance
@@ -153,7 +157,7 @@ export function getData(data, vm) {
     }
 }
 
-const computedWatcherOptions = { computed: true }
+const computedWatcherOptions = { lazy: true }
 
 function initComputed(vm, computed) {
     const watchers = vm._computedWatchers = Object.create(null);
@@ -184,6 +188,9 @@ export function defineComputed(target, key, userDef) {
     if(typeof userDef === 'function') {
         sharedPropertyDefinition.get = createComputedGetter(key);
         sharedPropertyDefinition.set = noop;
+    } else {
+        sharedPropertyDefinition.get = userDef.cache !== false ? createComputedGetter(key) : userDef.get;
+        sharedPropertyDefinition.set = userDef.set ? userDef.set : noop;
     }
     Object.defineProperty(target, key, sharedPropertyDefinition);
 }
@@ -191,10 +198,16 @@ export function defineComputed(target, key, userDef) {
 
 function createComputedGetter(key) {
     return function computedGetter() {
+        console.log('computedGetter')
         const watcher = this._computedWatchers && this._computedWatchers[key];
         if(watcher) {
-            watcher.depend();
-            return watcher.evaluate();
+            if(watcher.dirty) {
+                watcher.evaluate();
+            }
+            if(Dep.target) {
+                watcher.depend();
+            }
+            return watcher.value;
         }
     }
 }
@@ -210,7 +223,7 @@ function initWatch(vm, watch) {
     for(let key in watch) {
         const handler = watch[key];
         if(Array.isArray(handler)) {
-
+            //子组件父组件存在相同的key(watcher),则合并为数组
         } else {
             createWatcher(vm, key, handler);
         }
@@ -225,6 +238,5 @@ function createWatcher(vm, expOrFn, handler, options) {
     if(typeof handler === 'string') {
         handler = vm[handler]
     }
-
     return vm.$watch(expOrFn, handler, options)
 }

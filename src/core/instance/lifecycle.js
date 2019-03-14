@@ -34,6 +34,7 @@ export function mountComponent(vm, el, hydrating) {
 
     // isRenderWatcher 参数会在Watcher构造函数中将watcher实例绑定到vm的_watcher属性上
     // watcher的初始化补丁会调用$forceUpdate(e.g 子组件的mounted钩子函数), 这依赖于vm._watcher
+    console.log('----render初始化watcher---')
     new Watcher(vm, updateComponent, noop, {},  true); // true >> isRenderWatcher
     hydrating = false;
 
@@ -86,7 +87,25 @@ export function updateChildComponent(vm, propsData, listeners, parentVnode, rend
 export function initLifecycle(vm) {
     const options = vm.$options;
 
-    vm.$parent = null;
+    let parent = options.parent;
+    /**
+     * 关于抽象的实例
+     * keep-alive(core/components/keep-alive.js) 或 transiton
+     * 抽象的实例特点:
+     *      不渲染真实的DOM
+     *      不存在父子关系的路径上
+     */
+    //当前实例存在父级且不是抽象的
+    if(parent && !options.abstract) {
+        // 查找第一个非抽象的父组件
+        while (parent.$options.abstract && parent.$parent) {
+            parent = parent.$parent;
+        }
+        // 关联到父级
+        parent.$children.push(vm);
+    }
+
+    vm.$parent = parent;
     vm.$root = parent ? parent.$root : vm;
 
     vm.$children = [];
@@ -149,6 +168,10 @@ export function callHook(vm, hook) {
         }
     }
     if(vm._hasHookEvent) {
+        /**
+         * 生命周期钩子的事件侦听器
+         *   <child @hook:beforeCreate="handleChildBeforeCreate"/>
+         */
         vm.$emit('hook:' + hook);
     }
     popTarget()

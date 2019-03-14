@@ -34,6 +34,7 @@ export function initMixin(Vue) {
         callHook(vm, 'created')
 
         //vm._name = formatComponentName(vm, false);
+        //实例化子组件时不走这个逻辑
         if(vm.$options.el) {
             vm.$mount(vm.$options.el);
         }

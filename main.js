@@ -8,10 +8,14 @@ import Vue from './src/platforms/web/entry-runtime-with-compiler'
 // import demo from './examples/vdom'
 // import demo from './examples/event'
 // import demo from './examples/vmodel'
-// import demo from './examples/component'
+import demo from './examples/component'
+// import demo from './examples/scheduler'
+// import demo from './examples/computed'
+// import demo from './examples/parser'
+// import demo from './examples/props'
 
+window.__WEEX__ = false;
 
-import demo from './examples/parser'
 
 const appNode = document.getElementById('app');
 demo(appNode);

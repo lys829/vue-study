@@ -3,7 +3,10 @@
 import { noop, extend } from 'shared/util'
 import { warn as baseWarn, tip } from 'core/util/debug'
 
-
+type CompiledFunctionResult = {
+  render: Function;
+  staticRenderFns: Array<Function>;
+};
 
 function createFunction (code, errors) {
   try {
@@ -14,14 +17,14 @@ function createFunction (code, errors) {
   }
 }
 
-export function createCompileToFunctionFn (compile) {
+export function createCompileToFunctionFn (compile: Function): Function {
   const cache = Object.create(null)
 
   return function compileToFunctions (
-    template,
-    options,
-    vm
-  ) {
+    template: string,
+    options?: CompilerOptions,
+    vm?: Component
+  ): CompiledFunctionResult {
     options = extend({}, options)
     const warn = options.warn || baseWarn
     delete options.warn

@@ -11,6 +11,7 @@ export function pluckModuleFunction<F: Function> (
   modules: ?Array<Object>,
   key: string
 ): Array<F> {
+  // filter过滤掉undefined
   return modules
     ? modules.map(m => m[key]).filter(_ => _)
     : []
@@ -45,12 +46,12 @@ export function addDirective (
 }
 
 export function addHandler (
-  el: ASTElement,
-  name: string,
-  value: string,
-  modifiers: ?ASTModifiers,
-  important?: boolean,
-  warn?: Function
+  el, // 元素描述对象
+  name, //　绑定属性的名字，即事件名称
+  value, // 绑定属性的值 这个值有可能是事件回调函数名字，有可能是内联语句，有可能是函数表达式
+  modifiers, //指令对象
+  important,  // 代表着添加的事件侦听函数的重要级别，如果为 true，则该侦听函数会被添加到该事件侦听函数数组的头部，否则会将其添加到尾部
+  warn
 ) {
   modifiers = modifiers || emptyObject
   // warn prevent and passive modifier
@@ -100,7 +101,7 @@ export function addHandler (
     events = el.events || (el.events = {})
   }
 
-  const newHandler: any = {
+  const newHandler = {
     value: value.trim()
   }
   if (modifiers !== emptyObject) {
@@ -112,6 +113,7 @@ export function addHandler (
   if (Array.isArray(handlers)) {
     important ? handlers.unshift(newHandler) : handlers.push(newHandler)
   } else if (handlers) {
+    // events[name]这里变成了数组
     events[name] = important ? [newHandler, handlers] : [handlers, newHandler]
   } else {
     events[name] = newHandler
@@ -120,6 +122,10 @@ export function addHandler (
   el.plain = false
 }
 
+/**
+ *  处理绑定属性和非绑定属性　<div :test="val1" test="val2"></div>
+ *  其中val1为表达式, val2为字符串
+ */
 export function getBindingAttr (
   el: ASTElement,
   name: string,

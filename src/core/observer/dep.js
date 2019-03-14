@@ -13,7 +13,7 @@ export default class Dep {
     }
 
     addSub(sub) {
-        console.log(`dep(${this.name}) add sub id: ${this.id}`, sub)
+        // console.log(`dep(name: ${this.name}, id:${this.id}) add watcher`, sub)
         this.subs.push(sub);
     }
 
@@ -30,7 +30,7 @@ export default class Dep {
 
     notify() {
         const subs = this.subs.slice();
-        console.log('%c 开始更新, 监听者个数: '+subs.length, 'color: red')     
+        console.log('%c 开始更新, 监听者个数: '+subs.length, 'color: red', subs)
         for(let i = 0, l = subs.length; i < l; i++) {
             subs[i].update();
         }

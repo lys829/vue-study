@@ -7,6 +7,10 @@ import { shouldDecodeNewlines, shouldDecodeNewlinesForHref } from './util/compat
 
 const mount = Vue.prototype.$mount;
 Vue.prototype.$mount = function (el, hydrating) {
+    /**
+     *  编译模板(template)字符串为渲染函数
+     *  将渲染函数赋值给 vm.$options.render 选项
+     */
     el = el && query(el);
 
     //TODO:排除 body或者html作为挂载元素

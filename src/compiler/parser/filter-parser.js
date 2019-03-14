@@ -2,6 +2,11 @@
 
 const validDivisionCharRE = /[\w).+\-_$\]]/
 
+/**
+ *
+ * @param exp {String}
+ * @returns String
+ */
 export function parseFilters (exp) {
   let inSingle = false
   let inDouble = false
@@ -84,6 +89,12 @@ export function parseFilters (exp) {
   return expression
 }
 
+/**
+ *
+ * @param exp String
+ * @param filter String
+ * @returns {string}
+ */
 function wrapFilter (exp, filter) {
   const i = filter.indexOf('(')
   if (i < 0) {
@@ -95,3 +106,5 @@ function wrapFilter (exp, filter) {
     return `_f("${name}")(${exp}${args !== ')' ? ',' + args : args}`
   }
 }
+
+

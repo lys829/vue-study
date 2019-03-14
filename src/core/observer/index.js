@@ -37,7 +37,7 @@ export class Observer {
         if(Array.isArray(value)) {
             // const augment = hasProto ? protoAugment : copyAugment;
             // 劫持数组的原生方法
-            protoAugment(value, arrayMethods, arrayKeys)
+            protoAugment(value, arrayMethods, arrayKeys);
             this.observeArray(value);
         } else {
             this.walk(value);
@@ -104,21 +104,25 @@ export function observe(value, asRootData) {
  * @param {Boolean} shallow？
  */
 export function defineReactive(obj, key, val, customSetter, shallow) {
+    // 将数据对象的属性转换为访问器属性, 为数据对象的属性设置一对 getter/setter
+    // key方便调试使用
     const dep = new Dep(key);
     const property = Object.getOwnPropertyDescriptor(obj, key);
     if(property && property.configurable === false) {
         return;
     }
 
-    // 考虑之前定义的getter与setter
+    // 已经定义的getter与setter
     const getter = property && property.get;
-    const setter = property && property.set;
-    if((!getter || setter) && arguments.length === 2) {
+    if(!getter && arguments.length === 2) {
         // Observe构造函数中的walk方法中调用defineReactive没有这个val参数
         val = obj[key];
     }
+    const setter = property && property.set;
+
     //NOTE: 多层结构 childOb如果存在，为Observe实例
     // val是undefined 不会深度观测
+    // 非深度监测的场景 initRender (instance/render.js)
     let childOb = !shallow && observe(val);
 
     Object.defineProperty(obj, key, {
@@ -127,14 +131,20 @@ export function defineReactive(obj, key, val, customSetter, shallow) {
         get: function reactiveGetter() {
             const value = getter ? getter.call(obj) : val;
             if(Dep.target){
+                // 属性相关的dep
                 dep.depend();
                 if(childOb) {
+                    // 方便给对象添加新属性的同时触发依赖
                     //这里收集的依赖会在Vue.set()时释放
                     childOb.dep.depend();
-                    //TODO: 未知作用，先注释, 可能和Vue.set方法有关
-                    /* if(Array.isArray(value)) {
+                    // 数组中的某一个元素改动触发整个数组改变
+                    // {arr: [{a :1}]}
+                    // <div id="demo">{{arr}}</div>
+                    // vm.$set(ins.$data.arr[0], 'b', 2)
+                    // 数组中每个元素添加属性arr相关的依赖
+                    if(Array.isArray(value)) {
                         dependArray(value);
-                    } */
+                    }
                 }
             }
             return value;
@@ -142,7 +152,7 @@ export function defineReactive(obj, key, val, customSetter, shallow) {
 
         set: function reactiveSetter(newVal) {
             const value = getter ? getter.call(obj) : val;
-            if(newVal === value || (newVal !== newVal && value !== value)) { // NaN !== NaN
+            if(newVal === value || (newVal !== newVal && value !== value)) { // value !== value --> NaN !== NaN
                 return;
             }
             if(setter) {
@@ -190,13 +200,39 @@ export function set(target, key, val) {
         target.splice(key, 1, val);
         return;
     }
-
+    if (key in target && !(key in Object.prototype)) {
+        // 已经存在的key, 触发已经有的setter;
+        target[key] = val
+        return val
+    }
     if(!ob) {
         target[key] = val;
         return val;
     }
-
     defineReactive(ob.value, key, val);
     ob.dep.notify();
     return val;
 }
+
+
+/**
+ * Delete a property and trigger change if necessary.
+ */
+export function del(target, key) {
+    if(Array.isArray(target) && isValidArrayIndex(key)) {
+        target.splice(key, 1);
+        return;
+    }
+    const ob = target.__ob__;
+    if(!hasOwn(target, key)) {
+        return;
+    }
+    delete target[key];
+
+    if(!ob) {
+        return;
+    }
+    ob.dep.notify();
+}
+
+

@@ -1,4 +1,17 @@
+/**
+ *  对于 el、propsData 选项使用默认的合并策略 defaultStrat。
+ 对于 data 选项，使用 mergeDataOrFn 函数进行处理，最终结果是 data 选项将变成一个函数，且该函数的执行结果为真正的数据对象。
+ 对于 生命周期钩子 选项，将合并成数组，使得父子选项中的钩子函数都能够被执行
+ 对于 directives、filters 以及 components 等资源选项，父子选项将以原型链的形式被处理，正是因为这样我们才能够在任何地方都使用内置组件、指令等。
+ 对于 watch 选项的合并处理，类似于生命周期钩子，如果父子选项都有相同的观测字段，将被合并为数组，这样观察者都将被执行。
+ 对于 props、methods、inject、computed 选项，父选项始终可用，但是子选项会覆盖同名的父选项字段。
+ 对于 provide 选项，其合并策略使用与 data 选项相同的 mergeDataOrFn 函数。
+ 最后，以上没有提及到的选项都将使默认选项 defaultStrat。
+ 最最后，默认合并策略函数 defaultStrat 的策略是：只要子选项不是 undefined 就使用子选项，否则使用父选项。
+ */
+
 import config from '../config'
+import { set } from '../observer/index'
 
 import {
     extend,
@@ -43,7 +56,7 @@ LIFECYCLE_HOOKS.forEach( (hook)=> {
 })
 
 
-
+//将 parentVal 对象的属性混合到 childVal 中
 function mergeData(to, from) {
     if(!from) {
         return to;

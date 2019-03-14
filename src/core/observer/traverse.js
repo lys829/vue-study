@@ -30,12 +30,14 @@ function _traverse(val, seen) {
     if(isA) {
         i = val.length;
         while(i--) {
+            //val[i]读取子属性
             _traverse(val[i], seen);
         }
     } else {
         keys = Object.keys(val);
         i = keys.length;
         while(i--) {
+            //val[keys[i]]读取子属性
             _traverse(val[keys[i]], seen);
         }
     }

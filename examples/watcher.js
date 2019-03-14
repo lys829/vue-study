@@ -9,7 +9,8 @@ export default function init(el) {
                 n: 'n'
             }
         },
-        template: '<div><span>a: {{a}}</span><p>computed b: {{b}}</p><i>{{o.n}}</i></div>',
+        // template: '<div><span>a: {{a}}</span><p>computed b: {{b}}</p><i>{{o.n}}</i></div>',
+        template: '<div></div>',
         computed: {
             b: function () {
                 const res = this.a + 2;
@@ -17,17 +18,23 @@ export default function init(el) {
             }
         },
         watch: {
-            a: function(val, oldVal) {
-                console.log(`用户自定义watcher监听到改变 旧值:${oldVal} 新值: ${val}`);
-            }
+            o: {
+                handler: function(val, oldVal) {
+                    console.log(`用户自定义watcher监听到改变 旧值:${oldVal} 新值: ${val}`);
+                },
+                deep: true
+            },
         }
     })
     
     setTimeout(()=> {
         // vm.a = 6
-        vm.o = {n : 'test'}
-        console.log('computed b: ', vm.b);
-    }, 2000)
+        // vm.o = {n : 'test'}
+        // console.log('computed b: ', vm.b);
+        
+        //deep的作用
+        vm.o.n = 'm'
+    }, 1000)
 }
 
 

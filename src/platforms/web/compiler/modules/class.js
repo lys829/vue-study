@@ -7,6 +7,11 @@ import {
   baseWarn
 } from 'compiler/helpers'
 
+/**
+ *  <div class="a b c"></div> -> el.staticClass = JSON.stringify('a b c')
+ *
+ *  <div :class="{ 'active': isActive }"></div> -> el.classBinding = "{ 'active': isActive }"
+ */
 function transformNode (el: ASTElement, options: CompilerOptions) {
   const warn = options.warn || baseWarn
   const staticClass = getAndRemoveAttr(el, 'class')

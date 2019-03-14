@@ -31,6 +31,7 @@ export const isSVG = makeMap(
 
 export const isPreTag = tag => tag === 'pre';
 
+//检查给定的标签是否是保留的标签
 export const isReservedTag = (tag) => {
     return isHTMLTag(tag) || isSVG(tag)
 }

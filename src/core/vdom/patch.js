@@ -238,17 +238,17 @@ export function createPatchFunction(backend) {
             } else if (isUndef(oldEndVnode)) {
                 oldEndVnode = oldCh[--oldEndIdx];
             } else if (sameVnode(oldStartVnode, newStartVnode)) {
-                console.log('1.oldStartVnode === newStartVnode')
+                // console.log('1.oldStartVnode === newStartVnode')
                 patchVnode(oldStartVnode, newStartVnode, insertedVnodeQueue);
                 oldStartVnode = oldCh[++oldStartIdx];
                 newStartVnode = newCh[++newStartIdx];
             } else if (sameVnode(oldEndVnode, newEndVnode)) {
-                console.log('2.oldEndVnode === newEndVnode')
+                // console.log('2.oldEndVnode === newEndVnode')
                 patchVnode(oldEndVnode, newEndVnode, insertedVnodeQueue);
                 oldEndVnode = oldCh[--oldEndIdx]
                 newEndVnode = newCh[--newEndIdx]
             } else if (sameVnode(oldStartVnode, newEndVnode)) {
-                console.log('3.oldStartVnode === newEndVnode')
+                // console.log('3.oldStartVnode === newEndVnode')
                 patchVnode(oldStartVnode, newEndVnode, insertedVnodeQueue)
                 canMove && nodeOps.insertBefore(parentElm, oldStartVnode.elm, nodeOps.nextSibling(oldEndVnode.elm))
                 oldStartVnode = oldCh[++oldStartIdx]
@@ -259,7 +259,7 @@ export function createPatchFunction(backend) {
                 oldEndVnode = oldCh[--oldEndIdx]
                 newStartVnode = newCh[++newStartIdx]
             } else {
-                console.log('5. .....')
+                // console.log('5. .....')
                 if (isUndef(oldKeyToIdx)) {
                     //key与索引的映射
                     oldKeyToIdx = createKeyToOldIdx(oldCh, oldStartIdx, oldEndIdx);

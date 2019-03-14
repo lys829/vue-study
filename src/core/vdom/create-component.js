@@ -23,6 +23,7 @@ const componentVNodeHooks = {
         ) {
             // TODO: keeplive
         } else {
+            //activeInstance 在实例化Vue时创建, 保存着当前正在渲染的实例的引用
             const child = vnode.componentInstance = createComponentInstanceForVnode(vnode, activeInstance);
             // child.$mount(hydrating ? vnode.elm : undefined, hydrating)
             child.$mount(undefined, hydrating)

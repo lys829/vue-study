@@ -30,6 +30,7 @@ module.exports = {
     },
     resolve: {
         alias: {
+            '@': resolve('src'),
             vue: resolve('src/platforms/web/entry-runtime-with-compiler'),
             compiler: resolve('src/compiler'),
             core: resolve('src/core'),

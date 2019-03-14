@@ -20,10 +20,9 @@ export function initRender(vm) {
     vm._vnode = null; // the root of the child tree
     vm._staticTress = null; // v-once cached trees
     const options = vm.$options;
-    //此时options._parentVnode为undefined
+
     const parentVnode = vm.$vnode = options._parentVnode
     const renderContext = parentVnode && parentVnode.context;
-
     //TODO: $slots处理
 
     const parentData = parentVnode && parentVnode.data;
@@ -58,8 +57,7 @@ export function renderMixin(Vue) {
         const {render} = vm.$options
         let vnode;
         try {
-            console.log('render 函数: ', render)
-            //_renderProxy的值为vm本身, 如果用户提供render函数,参数vm.$createElement
+            //_renderProxy的值为vm本身, 如果用户提供render函数,参数为vm.$createElement
             vnode = render.call(vm._renderProxy, vm.$createElement);
         } catch(e) {
             console.error(e);
